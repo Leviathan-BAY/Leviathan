@@ -220,15 +220,15 @@ public struct GameInfo has key, store {
   - **Leviathan Indigo**: `#3B82F6` - 남색 계열의 깊은 색상
 
 - **그라데이션 조합**:
-  - **Primary Gradient**: Sky Blue → Deep Blue (주요 버튼, 헤더)
-  - **Ocean Gradient**: Ocean → Teal (카드 배경, 섹션 구분)
+  - **Primary Gradient**: Sky Blue → Ocean (주요 버튼, 헤더에 사용하여 맑고 청량한 느낌 강화)
+  - **Deep Ocean Gradient**: Ocean → Deep Blue (카드 배경, 깊이감 있는 섹션에 사용)
   - **Accent Gradient**: Cyan → Indigo (특수 효과, 강조 요소)
 
 #### 6.1.3. 글래스모피즘 디자인 시스템
 - **글래스 효과 (Glass Effects)**:
   - **투명도**: 배경 투명도 40-60% 사용 (`rgba(30, 41, 59, 0.4)`)
   - **블러 효과**: `backdrop-filter: blur(16px)` 적용
-  - **테두리**: 얇은 반투명 테두리 `1px solid rgba(148, 163, 184, 0.1)`
+  - **테두리**: 맑은 물의 경계처럼 얇고 투명한 테두리 `1px solid rgba(56, 189, 248, 0.2)`
   - **내부 그림자**: 미묘한 `inset` 그림자로 깊이감 표현
 
 - **글로우 효과 (Glow Effects)**:
@@ -252,16 +252,16 @@ public struct GameInfo has key, store {
 
 #### 6.1.5. 컴포넌트 디자인 원칙
 - **카드 (Cards)**:
-  - 글래스모피즘 배경 적용
+  - 맑은 바다 위에 떠 있는 듯한 글래스모피즘 배경 적용
   - 둥근 모서리 `border-radius: 16px`
-  - 호버 시 미묘한 상승 효과와 글로우 강화
+  - 호버 시 수면 위로 살짝 떠오르는 듯한 미묘한 상승 효과와 함께, 카드 외곽에 Primary Glow가 강화됨
   - 내부 여백 일관성 유지
 
 - **버튼 (Buttons)**:
-  - **Primary Button**: 그라데이션 배경 + 글로우 효과
-  - **Secondary Button**: 투명 배경 + 테두리 + 호버 시 배경
-  - **Ghost Button**: 최소한의 스타일, 텍스트 색상 변화만
-  - 모든 버튼에 부드러운 전환 효과 적용
+  - **Primary Button**: Primary Gradient(Sky Blue → Ocean)를 적용하여 청량감을 극대화. 호버 시 그라데이션이 미세하게 밝아지며 버튼 전체를 감싸는 부드러운 Primary Glow가 발산됨.
+  - **Secondary Button**: 글래스모피즘 효과가 적용된 투명 배경에 Leviathan Sky Blue 색상의 선명한 테두리 사용. 호버 시 얕은 바다처럼 Leviathan Ocean 색상이 반투명하게 차오름.
+  - **Ghost Button**: 배경과 테두리 없이 Leviathan Deep Blue 색상의 텍스트로만 구성. 호버 시 텍스트 색상이 Leviathan Sky Blue로 밝아지며 텍스트 하단에 잔물결 같은 밑줄이 생성됨.
+  - 모든 버튼에 300ms `ease-out` 전환 효과를 적용하여 부드럽고 명쾌한 피드백을 제공.
 
 - **입력 필드 (Input Fields)**:
   - 글래스 배경과 얇은 테두리
@@ -295,12 +295,12 @@ public struct GameInfo has key, store {
   - **Extra Large**: 1280px
 
 #### 6.1.8. 다크 테마 최적화
-- **배경 색상**: 매우 어두운 네이비 계열 (`#0F172A`)
+- **배경 색상**: 심해처럼 깊고 어두운 네이비 계열 (`#0F172A`)
 - **텍스트 색상**:
-  - **Primary**: 밝은 흰색 (`#FFFFFF`)
-  - **Secondary**: 중간 회색 (`#CBD5E1`)
-  - **Muted**: 어두운 회색 (`#64748B`)
-- **투명도 조절**: 다크 테마에서 글래스 효과 투명도 미세 조정
+  - **Primary**: 밝고 선명한 흰색 (`#F8FAFC`)
+  - **Secondary**: 차분한 슬레이트 블루 (`#94A3B8`)
+  - **Muted**: 반투명 흰색 (`rgba(248, 250, 252, 0.5)`)
+- **투명도 조절**: 다크 테마에서 글래스 효과의 투명도와 블러 값을 미세 조정하여 최적의 가독성을 확보합니다.
 
 #### 6.1.9. 접근성 고려사항
 - **색상 대비**: WCAG 2.1 AA 기준 준수 (최소 4.5:1 대비율)
@@ -350,18 +350,16 @@ public struct GameInfo has key, store {
 ## 8. MVP 구현 우선순위 및 세부 태스크
 
 ### Phase 1: 프로젝트 기반 설정 및 핵심 인프라 (4-6주)
-
+### 백엔드 제외, 프론트 및 컨트랙트만
 #### 1.1. 프로젝트 초기 설정 (✅ 완료)
 - **Task 1.1.1**: 모노레포 구조 설정 (pnpm workspace) - ✅ 완료
   - ✅ pnpm-workspace.yaml 설정 완료
   - ✅ 루트 package.json 구성 완료
   - ✅ TypeScript 설정 통합 완료
   - ✅ ESLint/Prettier 설정 통합 완료
-- **Task 1.1.2**: 개발 환경 구성 - ⚠️ 부분 완료
+- **Task 1.1.2**: 개발 환경 구성 -  ✅ 완료
   - ✅ 환경 변수 관리 (.env) 완료
-  - 🔄 Docker 개발 환경 설정 (선택사항)
-  - 🔄 PostgreSQL + Redis 컨테이너 설정 (백엔드 구현시 필요)
-  - 🔄 VS Code 워크스페이스 설정 (선택사항)
+
 
 #### 1.2. 스마트 컨트랙트 기반 구축
 - **Task 1.2.1**: Sui Move 프로젝트 초기 설정
@@ -415,21 +413,8 @@ public struct GameInfo has key, store {
   - ✅ Humpback 로고 통합 (/images/Humpbacklogo.png) 완료
   - ✅ 일관된 컬러 팔레트 및 타이포그래피 적용 완료
 
-#### 1.4. 백엔드 API 기반 구조
-- **Task 1.4.1**: Node.js + Express 프로젝트 설정
-  - Express 서버 기본 구조
-  - TypeScript 설정
-  - 미들웨어 설정 (CORS, 로깅 등)
-- **Task 1.4.2**: 데이터베이스 설정 및 ORM 구성
-  - Prisma 스키마 설계
-  - 기본 모델 정의 (User, Game, Match 등)
-  - 마이그레이션 설정
-- **Task 1.4.3**: 블록체인 인덱서 기본 구조
-  - Sui RPC 연결 설정
-  - 이벤트 리스닝 기본 구조
-  - 데이터베이스 동기화 로직
 
-### Phase 2: Hermit Finance 구현 (3-4주)
+### Phase 2: Hermit Finance 구현
 
 #### 2.1. hSui 스왑 인터페이스 구현
 - **Task 2.1.1**: Deposit 컴포넌트 개발
@@ -464,7 +449,7 @@ public struct GameInfo has key, store {
   - 통합 테스트 수행
   - 버그 수정 및 최적화
 
-### Phase 3: Humpback Launchpad - 게임 에디터 (4-5주)
+### Phase 3: Humpback Launchpad - 게임 에디터
 
 #### 3.1. 5x5 보드 에디터 구현
 - **Task 3.1.1**: 드래그 앤 드롭 보드 에디터
@@ -492,35 +477,21 @@ public struct GameInfo has key, store {
   - 템플릿 미리보기 기능
   - 커스터마이징 시작 플로우
 
-#### 3.3. 테스트 플레이 모드
-- **Task 3.3.1**: 게임 시뮬레이터 엔진
-  - 게임 로직 실행 엔진
-  - 턴 관리 및 상태 추적
-  - 승리 조건 검증
-- **Task 3.3.2**: AI 봇 플레이어 (간단한 랜덤 AI)
-  - 기본 AI 의사결정 로직
-  - 다양한 난이도 설정
-  - AI vs 사용자 테스트 모드
-- **Task 3.3.3**: 게임 검증 시스템
-  - 룰 충돌 검출 알고리즘
-  - 무한 루프 방지 체크
-  - 밸런스 분석 (승률, 게임 길이 등)
-
-#### 3.4. 게임 퍼블리싱 플로우
-- **Task 3.4.1**: 게임 메타데이터 편집기
+#### 3.3. 게임 퍼블리싱 플로우
+- **Task 3.3.1**: 게임 메타데이터 편집기
   - 게임 제목, 설명, 태그 입력
   - 썸네일 이미지 업로드
   - 게임 설정 요약 표시
-- **Task 3.4.2**: Walrus 스토리지 통합
+- **Task 3.3.2**: Walrus 스토리지 통합
   - 게임 데이터 직렬화
   - Walrus 업로드 기능
   - 업로드 진행상황 표시
-- **Task 3.4.3**: 온체인 게임 등록
+- **Task 3.3.3**: 온체인 게임 등록
   - 게임 등록 스마트 컨트랙트 개발
   - 론칭 수수료 (hSui) 결제 플로우
   - 등록 완료 및 확인 화면
 
-### Phase 4: Splash Zone - 게임 플레이 시스템 (5-6주)
+### Phase 4: Splash Zone - 게임 플레이 시스템
 
 #### 4.1. 게임 브라우저 및 발견
 - **Task 4.1.1**: 게임 갤러리 인터페이스
@@ -564,21 +535,8 @@ public struct GameInfo has key, store {
   - 온체인 상금 정산 실행
   - 게임 결과 저장 및 통계 업데이트
 
-#### 4.4. 백엔드 인덱서 및 API
-- **Task 4.4.1**: 블록체인 이벤트 인덱서
-  - 게임 등록 이벤트 추적
-  - 매치 결과 이벤트 수집
-  - hSui 거래 내역 인덱싱
-- **Task 4.4.2**: 게임 통계 API
-  - 게임별 플레이 통계 수집
-  - 인기도 랭킹 계산
-  - 창작자 수익 통계 제공
-- **Task 4.4.3**: 사용자 프로필 및 히스토리
-  - 플레이어 전적 기록
-  - 게임별 통계 저장
-  - 수익/손실 히스토리 추적
 
-### Phase 5: 통합 테스트 및 최적화 (2-3주)
+### Phase 5: 통합 테스트 및 최적화
 
 #### 5.1. 전체 시스템 통합 테스트
 - **Task 5.1.1**: E2E 테스트 시나리오 구현
@@ -620,7 +578,7 @@ public struct GameInfo has key, store {
 ### 핵심 Sui 블록체인 특징
 - **Object-Centric Architecture**: Sui의 객체 기반 모델을 활용한 게임 자산 관리
 - **Parallel Transaction Processing**: 동시 게임 실행을 위한 Sui의 병렬 처리 능력 활용
-- **Move Programming Language**: Sui Move를 사용한 안전하고 검증 가능한 스마트 컨트랙트 개발
+- **Sui Move Programming Language**: Sui Move를 사용한 안전하고 검증 가능한 스마트 컨트랙트 개발
 - **Low Gas Fees**: 빈번한 게임 트랜잭션에 적합한 저렴한 가스비
 - **Fast Finality**: 실시간 게임플레이를 위한 빠른 트랜잭션 확정
 
@@ -653,14 +611,9 @@ packages/contracts/sources/
 - **객체 쿼리**: Sui 객체 상태 실시간 조회
 - **이벤트 구독**: 온체인 이벤트 리스닝 및 처리
 
-### Sui 특화 개발 패턴
-- **Shared Objects**: 게임 보드 상태를 공유 객체로 관리
-- **Transfer to Object**: 게임 자산의 소유권 이전
-- **Dynamic Fields**: 확장 가능한 게임 메타데이터 저장
-- **Capability Pattern**: 게임 생성자 권한 관리
 
 ### Walrus 스토리지 통합 (Sui 생태계)
-- **게임 자산 저장**: 이미지, 게임 로직을 Walrus에 분산 저장
+- **게임 자산 저장**: 이미지, 게임 로직, 게임 시연 영상을 Walrus에 분산 저장
 - **IPFS 호환성**: Walrus의 IPFS 호환 인터페이스 활용
 - **Cost Efficiency**: Sui 네트워크와 최적화된 스토리지 비용
 
