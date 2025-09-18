@@ -1,82 +1,184 @@
-export default function HermitFinancePage() {
+import { Flex, Box, Heading, Text, Card, Button, Grid } from "@radix-ui/themes";
+import { useState } from "react";
+import hermitLogo from "../assets/images/Hermitlogo.png";
+
+export function HermitFinancePage() {
+  const [depositAmount, setDepositAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+
   return (
-    <div className="space-y-8">
-      <div className="text-center space-y-4">
-        <div className="w-24 h-24 bg-primary-100 rounded-lg flex items-center justify-center mx-auto">
-          <img src="/images/Hermit.png" alt="Hermit Finance" className="w-16 h-16" />
-        </div>
-        <h1 className="text-3xl font-bold">Hermit Finance</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Convert your SUI to hSui and protect yourself from price volatility with our delta-neutral strategy.
-        </p>
-      </div>
+    <Flex direction="column" gap="8">
+      {/* Header */}
+      <Flex align="center" gap="4" style={{ textAlign: "center" }} justify="center">
+        <img
+          src={hermitLogo}
+          alt="Hermit Finance"
+          style={{ width: "64px", height: "64px" }}
+        />
+        <Box>
+          <Heading size="8" color="white">Hermit Finance</Heading>
+          <Text size="4" color="gray">
+            Delta-neutral liquid staking for stable value storage
+          </Text>
+        </Box>
+      </Flex>
 
-      <div className="glass rounded-lg p-8 max-w-2xl mx-auto">
-        <h2 className="text-2xl font-semibold mb-6 text-center">SUI ↔ hSui Converter</h2>
+      {/* Stats Cards */}
+      <Grid columns="4" gap="4">
+        <Card p="4" style={{
+          background: "rgba(30, 41, 59, 0.4)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(148, 163, 184, 0.1)",
+        }}>
+          <Text size="2" color="gray">Total Value Locked</Text>
+          <Heading size="5" color="white">45,234 SUI</Heading>
+        </Card>
+        <Card p="4" style={{
+          background: "rgba(30, 41, 59, 0.4)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(148, 163, 184, 0.1)",
+        }}>
+          <Text size="2" color="gray">hSUI Supply</Text>
+          <Heading size="5" color="white">45,180 hSUI</Heading>
+        </Card>
+        <Card p="4" style={{
+          background: "rgba(30, 41, 59, 0.4)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(148, 163, 184, 0.1)",
+        }}>
+          <Text size="2" color="gray">APY</Text>
+          <Heading size="5" color="white">4.2%</Heading>
+        </Card>
+        <Card p="4" style={{
+          background: "rgba(30, 41, 59, 0.4)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(148, 163, 184, 0.1)",
+        }}>
+          <Text size="2" color="gray">Exchange Rate</Text>
+          <Heading size="5" color="white">1.001 SUI</Heading>
+        </Card>
+      </Grid>
 
-        <div className="space-y-6">
-          {/* Conversion Interface Placeholder */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">From: SUI</span>
-              <span className="text-sm text-muted-foreground">Balance: 0 SUI</span>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <input
-                type="number"
-                placeholder="0.0"
-                className="w-full bg-transparent text-2xl outline-none"
-                disabled
-              />
-            </div>
-          </div>
+      {/* Deposit/Withdraw Interface */}
+      <Grid columns="2" gap="6">
+        {/* Deposit Card */}
+        <Card p="6" style={{
+          background: "rgba(30, 41, 59, 0.4)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(148, 163, 184, 0.1)",
+          borderRadius: "16px",
+        }}>
+          <Heading size="5" color="white" mb="4">Deposit SUI</Heading>
+          <Text size="3" color="gray" mb="4">
+            Convert your SUI to hSUI for stable value storage
+          </Text>
 
-          <div className="flex justify-center">
-            <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-              ↓
-            </div>
-          </div>
+          <Box mb="4">
+            <Text size="2" color="gray" mb="2">Amount to deposit</Text>
+            <input
+              type="number"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              placeholder="0.0"
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "8px",
+                border: "1px solid rgba(148, 163, 184, 0.2)",
+                background: "rgba(0, 0, 0, 0.2)",
+                color: "white",
+                fontSize: "16px",
+              }}
+            />
+            <Text size="2" color="gray" mt="1">
+              You will receive: {depositAmount ? (parseFloat(depositAmount) * 0.999).toFixed(3) : "0"} hSUI
+            </Text>
+          </Box>
 
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">To: hSUI</span>
-              <span className="text-sm text-muted-foreground">Balance: 0 hSUI</span>
-            </div>
-            <div className="p-4 border rounded-lg bg-muted/50">
-              <div className="w-full text-2xl text-muted-foreground">0.0</div>
-            </div>
-          </div>
-
-          <button
-            className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium opacity-50 cursor-not-allowed"
-            disabled
+          <Button
+            size="3"
+            style={{
+              width: "100%",
+              background: "linear-gradient(135deg, var(--sky-9), var(--blue-9))",
+            }}
           >
-            Connect Wallet to Continue
-          </button>
-        </div>
-      </div>
+            Deposit SUI
+          </Button>
+        </Card>
 
-      {/* Info Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="bg-card rounded-lg p-6 space-y-3">
-          <h3 className="font-semibold">Delta Neutral Strategy</h3>
-          <p className="text-sm text-muted-foreground">
-            50% staking + 50% futures short position to maintain stable value regardless of SUI price movements.
-          </p>
-        </div>
-        <div className="bg-card rounded-lg p-6 space-y-3">
-          <h3 className="font-semibold">1:1 Conversion</h3>
-          <p className="text-sm text-muted-foreground">
-            Simple 1:1 ratio between SUI and hSui for easy understanding and transparent conversions.
-          </p>
-        </div>
-        <div className="bg-card rounded-lg p-6 space-y-3">
-          <h3 className="font-semibold">Instant Liquidity</h3>
-          <p className="text-sm text-muted-foreground">
-            Convert back to SUI anytime with minimal fees and no lock-up periods.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+        {/* Withdraw Card */}
+        <Card p="6" style={{
+          background: "rgba(30, 41, 59, 0.4)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid rgba(148, 163, 184, 0.1)",
+          borderRadius: "16px",
+        }}>
+          <Heading size="5" color="white" mb="4">Withdraw SUI</Heading>
+          <Text size="3" color="gray" mb="4">
+            Convert your hSUI back to SUI with accrued rewards
+          </Text>
+
+          <Box mb="4">
+            <Text size="2" color="gray" mb="2">Amount to withdraw</Text>
+            <input
+              type="number"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+              placeholder="0.0"
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "8px",
+                border: "1px solid rgba(148, 163, 184, 0.2)",
+                background: "rgba(0, 0, 0, 0.2)",
+                color: "white",
+                fontSize: "16px",
+              }}
+            />
+            <Text size="2" color="gray" mt="1">
+              You will receive: {withdrawAmount ? (parseFloat(withdrawAmount) * 1.001).toFixed(3) : "0"} SUI
+            </Text>
+          </Box>
+
+          <Button
+            size="3"
+            variant="outline"
+            style={{ width: "100%" }}
+          >
+            Withdraw SUI
+          </Button>
+        </Card>
+      </Grid>
+
+      {/* How it works */}
+      <Card p="6" style={{
+        background: "rgba(30, 41, 59, 0.4)",
+        backdropFilter: "blur(16px)",
+        border: "1px solid rgba(148, 163, 184, 0.1)",
+        borderRadius: "16px",
+      }}>
+        <Heading size="5" color="white" mb="4">How Delta-Neutral Strategy Works</Heading>
+        <Grid columns="3" gap="4">
+          <Box>
+            <Heading size="3" color="white" mb="2">1. Deposit</Heading>
+            <Text size="3" color="gray">
+              50% of your SUI goes to staking validators for rewards
+            </Text>
+          </Box>
+          <Box>
+            <Heading size="3" color="white" mb="2">2. Hedge</Heading>
+            <Text size="3" color="gray">
+              50% becomes collateral for 1x short position on perps DEX
+            </Text>
+          </Box>
+          <Box>
+            <Heading size="3" color="white" mb="2">3. Stable Value</Heading>
+            <Text size="3" color="gray">
+              Price movements cancel out, you keep staking rewards
+            </Text>
+          </Box>
+        </Grid>
+      </Card>
+    </Flex>
+  );
 }

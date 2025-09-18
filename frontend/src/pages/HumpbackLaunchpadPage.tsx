@@ -1,139 +1,243 @@
-export default function HumpbackLaunchpadPage() {
+import { Flex, Box, Heading, Text, Card, Button, Grid, Tabs } from "@radix-ui/themes";
+import humpbackLogo from "../assets/images/Humpbacklogo.png";
+
+export function HumpbackLaunchpadPage() {
+  const cardStyle = {
+    background: "rgba(30, 41, 59, 0.4)",
+    backdropFilter: "blur(16px)",
+    border: "1px solid rgba(148, 163, 184, 0.1)",
+    borderRadius: "16px",
+    padding: "24px",
+  };
+
   return (
-    <div className="space-y-8">
-      <div className="text-center space-y-4">
-        <div className="w-24 h-24 bg-secondary-100 rounded-lg flex items-center justify-center mx-auto">
-          <img src="/images/Humpback.png" alt="Humpback Launchpad" className="w-16 h-16" />
-        </div>
-        <h1 className="text-3xl font-bold">Humpback Launchpad</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Create your own custom games without any coding knowledge. Choose from templates and customize to your heart's content.
-        </p>
-      </div>
+    <Flex direction="column" gap="8">
+      {/* Header */}
+      <Flex align="center" gap="4" style={{ textAlign: "center" }} justify="center">
+        <img
+          src={humpbackLogo}
+          alt="Humpback Launchpad"
+          style={{ width: "64px", height: "64px" }}
+        />
+        <Box>
+          <Heading size="8" style={{ color: "white" }}>Humpback Launchpad</Heading>
+          <Text size="4" color="gray">
+            No-code game creation with Hand, Board, and Private Area system
+          </Text>
+        </Box>
+      </Flex>
 
-      {/* Game Templates */}
-      <section className="space-y-6">
-        <h2 className="text-2xl font-semibold text-center">Choose a Template</h2>
+      {/* Game Making Tool Overview */}
+      <Card style={cardStyle}>
+        <Heading size="5" style={{ color: "white" }} mb="4">Game Making Tool</Heading>
+        <Text size="3" color="gray" mb="6">
+          Create custom board games using our three-space system: Hand for player cards/tokens,
+          Shared Board (5×5) for main gameplay, and Private Area for personal game pieces.
+        </Text>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* 5x5 Board Game Template */}
-          <div className="bg-card rounded-lg p-6 space-y-4 border-2 border-primary/20 relative">
-            <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
-              Featured
-            </div>
-            <div className="w-16 h-16 bg-primary-100 rounded-lg flex items-center justify-center mx-auto">
-              <div className="grid grid-cols-3 gap-1">
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={i} className="w-1 h-1 bg-primary rounded-sm" />
-                ))}
-              </div>
-            </div>
-            <h3 className="text-lg font-semibold text-center">5x5 Board Game</h3>
-            <p className="text-sm text-muted-foreground text-center">
-              Create custom board games like Yut-nori with special tiles, custom rules, and victory conditions.
-            </p>
-            <button className="w-full py-2 bg-primary text-primary-foreground rounded-lg font-medium">
-              Start Creating
-            </button>
-          </div>
+        <Grid columns="3" gap="4">
+          <Box style={{ textAlign: "center" }}>
+            <Heading size="4" style={{ color: "white" }} mb="2">Hand</Heading>
+            <Text size="3" color="gray">
+              Player's personal card and token collection space
+            </Text>
+          </Box>
+          <Box style={{ textAlign: "center" }}>
+            <Heading size="4" style={{ color: "white" }} mb="2">Shared Board</Heading>
+            <Text size="3" color="gray">
+              5×5 main board for all players to interact
+            </Text>
+          </Box>
+          <Box style={{ textAlign: "center" }}>
+            <Heading size="4" style={{ color: "white" }} mb="2">Private Area</Heading>
+            <Text size="3" color="gray">
+              3-5 personal slots for individual game pieces
+            </Text>
+          </Box>
+        </Grid>
+      </Card>
 
-          {/* Card Game Template */}
-          <div className="bg-card rounded-lg p-6 space-y-4 opacity-50">
-            <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto">
-              <div className="w-8 h-10 bg-muted-foreground/20 rounded border-2 border-muted-foreground/30" />
-            </div>
-            <h3 className="text-lg font-semibold text-center">Card Game</h3>
-            <p className="text-sm text-muted-foreground text-center">
-              Design trading card games with custom decks, abilities, and battle mechanics.
-            </p>
-            <button className="w-full py-2 bg-muted text-muted-foreground rounded-lg font-medium cursor-not-allowed">
-              Coming Soon
-            </button>
-          </div>
+      {/* Space Types */}
+      <Grid columns="3" gap="6">
+        <Card style={cardStyle}>
+          <Heading size="4" style={{ color: "white" }} mb="3">Image Spaces</Heading>
+          <Text size="3" color="gray" mb="4">
+            Display backgrounds or showcase cards/tokens. Simple visual elements for game aesthetics.
+          </Text>
+          <Button variant="outline" style={{ width: "100%" }}>
+            Learn More
+          </Button>
+        </Card>
 
-          {/* Dice Game Template */}
-          <div className="bg-card rounded-lg p-6 space-y-4 opacity-50">
-            <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto">
-              <div className="w-8 h-8 bg-muted-foreground/20 rounded border border-muted-foreground/30 flex items-center justify-center">
-                <div className="grid grid-cols-3 gap-1">
-                  <div></div>
-                  <div className="w-1 h-1 bg-muted-foreground/50 rounded-full"></div>
-                  <div></div>
-                  <div className="w-1 h-1 bg-muted-foreground/50 rounded-full"></div>
-                  <div className="w-1 h-1 bg-muted-foreground/50 rounded-full"></div>
-                  <div className="w-1 h-1 bg-muted-foreground/50 rounded-full"></div>
-                  <div></div>
-                  <div className="w-1 h-1 bg-muted-foreground/50 rounded-full"></div>
-                  <div></div>
-                </div>
-              </div>
-            </div>
-            <h3 className="text-lg font-semibold text-center">Dice Game</h3>
-            <p className="text-sm text-muted-foreground text-center">
-              Build probability-based games with custom dice, betting mechanics, and risk-reward systems.
-            </p>
-            <button className="w-full py-2 bg-muted text-muted-foreground rounded-lg font-medium cursor-not-allowed">
-              Coming Soon
-            </button>
-          </div>
-        </div>
-      </section>
+        <Card style={cardStyle}>
+          <Heading size="4" style={{ color: "white" }} mb="3">Deck Spaces</Heading>
+          <Text size="3" color="gray" mb="4">
+            Card stacks with draw, shuffle, and flip functions. Perfect for card-based mechanics.
+          </Text>
+          <Button variant="outline" style={{ width: "100%" }}>
+            Learn More
+          </Button>
+        </Card>
 
-      {/* Creation Process */}
-      <section className="space-y-6">
-        <h2 className="text-2xl font-semibold text-center">Creation Process</h2>
+        <Card style={cardStyle}>
+          <Heading size="4" style={{ color: "white" }} mb="3">Track Spaces</Heading>
+          <Text size="3" color="gray" mb="4">
+            Token movement with click-based interaction. Supports custom movement rules and effects.
+          </Text>
+          <Button variant="outline" style={{ width: "100%" }}>
+            Learn More
+          </Button>
+        </Card>
+      </Grid>
 
-        <div className="grid md:grid-cols-4 gap-6">
-          <div className="text-center space-y-3">
-            <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto font-semibold">
-              1
-            </div>
-            <h3 className="font-medium">Choose Template</h3>
-            <p className="text-sm text-muted-foreground">
-              Pick a game template that matches your vision
-            </p>
-          </div>
+      {/* Game Creation Flow */}
+      <Card style={cardStyle}>
+        <Heading size="5" style={{ color: "white" }} mb="4">Create Your Game</Heading>
 
-          <div className="text-center space-y-3">
-            <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto font-semibold">
-              2
-            </div>
-            <h3 className="font-medium">Customize Rules</h3>
-            <p className="text-sm text-muted-foreground">
-              Modify game mechanics, victory conditions, and parameters
-            </p>
-          </div>
+        <Tabs.Root defaultValue="design">
+          <Tabs.List>
+            <Tabs.Trigger value="design">Design</Tabs.Trigger>
+            <Tabs.Trigger value="rules">Rules</Tabs.Trigger>
+            <Tabs.Trigger value="test">Test</Tabs.Trigger>
+            <Tabs.Trigger value="publish">Publish</Tabs.Trigger>
+          </Tabs.List>
 
-          <div className="text-center space-y-3">
-            <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto font-semibold">
-              3
-            </div>
-            <h3 className="font-medium">Test & Preview</h3>
-            <p className="text-sm text-muted-foreground">
-              Play test your game with AI bots and validate rules
-            </p>
-          </div>
+          <Box py="4">
+            <Tabs.Content value="design">
+              <Text size="3" color="gray" mb="4">
+                Set up your game board layout and choose space types for each position.
+              </Text>
+              <Grid columns="2" gap="4">
+                <Box>
+                  <Text size="2" color="gray" mb="2">Board Layout</Text>
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: "2px",
+                    background: "rgba(148, 163, 184, 0.1)",
+                    padding: "8px",
+                    borderRadius: "8px"
+                  }}>
+                    {Array.from({ length: 25 }).map((_, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          background: "rgba(56, 189, 248, 0.3)",
+                          borderRadius: "4px",
+                          cursor: "pointer"
+                        }}
+                      />
+                    ))}
+                  </div>
+                </Box>
+                <Box>
+                  <Text size="2" color="gray" mb="2">Space Types</Text>
+                  <Flex direction="column" gap="2">
+                    <Button variant="outline" size="2">Image Space</Button>
+                    <Button variant="outline" size="2">Deck Space</Button>
+                    <Button variant="outline" size="2">Track Space</Button>
+                  </Flex>
+                </Box>
+              </Grid>
+            </Tabs.Content>
 
-          <div className="text-center space-y-3">
-            <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto font-semibold">
-              4
-            </div>
-            <h3 className="font-medium">Publish</h3>
-            <p className="text-sm text-muted-foreground">
-              Launch your game to Splash Zone for players to discover
-            </p>
-          </div>
-        </div>
-      </section>
+            <Tabs.Content value="rules">
+              <Text size="3" color="gray" mb="4">
+                Define game rules, movement patterns, and win conditions.
+              </Text>
+              <Grid columns="2" gap="4">
+                <Box>
+                  <Text size="2" color="gray" mb="2">Movement Rules</Text>
+                  <Text size="3" color="gray">
+                    • Click-based token movement<br/>
+                    • Direct mapping or distance-based<br/>
+                    • Custom special effects per space
+                  </Text>
+                </Box>
+                <Box>
+                  <Text size="2" color="gray" mb="2">Victory Conditions</Text>
+                  <Text size="3" color="gray">
+                    • Reach specific positions<br/>
+                    • Collect certain items<br/>
+                    • Score-based competition
+                  </Text>
+                </Box>
+              </Grid>
+            </Tabs.Content>
+
+            <Tabs.Content value="test">
+              <Text size="3" color="gray" mb="4">
+                Test your game with AI players or local simulation before publishing.
+              </Text>
+              <Flex gap="4">
+                <Button style={{ background: "linear-gradient(135deg, var(--sky-9), var(--blue-9))" }}>
+                  Start Test Game
+                </Button>
+                <Button variant="outline">AI vs AI Demo</Button>
+              </Flex>
+            </Tabs.Content>
+
+            <Tabs.Content value="publish">
+              <Text size="3" color="gray" mb="4">
+                Upload to Walrus storage and register on Sui blockchain.
+              </Text>
+              <Flex direction="column" gap="4">
+                <Box>
+                  <Text size="2" color="gray" mb="2">Publishing Fee</Text>
+                  <Text size="3" style={{ color: "white" }}>5 hSUI</Text>
+                </Box>
+                <Button
+                  size="3"
+                  style={{
+                    background: "linear-gradient(135deg, var(--sky-9), var(--blue-9))",
+                    width: "200px"
+                  }}
+                >
+                  Publish Game
+                </Button>
+              </Flex>
+            </Tabs.Content>
+          </Box>
+        </Tabs.Root>
+      </Card>
 
       {/* Featured Games */}
-      <section className="space-y-6">
-        <h2 className="text-2xl font-semibold text-center">Featured Community Games</h2>
+      <Box>
+        <Heading size="5" style={{ color: "white" }} mb="4">Community Games</Heading>
+        <Grid columns="3" gap="4">
+          <Card style={{ ...cardStyle, padding: "16px" }}>
+            <Text size="2" color="gray" mb="1">Featured</Text>
+            <Heading size="4" style={{ color: "white" }} mb="2">5×5 Racing</Heading>
+            <Text size="3" color="gray" mb="3">Classic token racing with special power-ups</Text>
+            <Flex justify="between" align="center">
+              <Text size="2" color="gray">by creator123</Text>
+              <Button size="1" variant="outline">Play</Button>
+            </Flex>
+          </Card>
 
-        <div className="text-center text-muted-foreground">
-          <p>No community games yet. Be the first to create one!</p>
-        </div>
-      </section>
-    </div>
-  )
+          <Card style={{ ...cardStyle, padding: "16px" }}>
+            <Text size="2" color="gray" mb="1">Popular</Text>
+            <Heading size="4" style={{ color: "white" }} mb="2">Card Battle</Heading>
+            <Text size="3" color="gray" mb="3">Strategic deck-based combat system</Text>
+            <Flex justify="between" align="center">
+              <Text size="2" color="gray">by gamedev456</Text>
+              <Button size="1" variant="outline">Play</Button>
+            </Flex>
+          </Card>
+
+          <Card style={{ ...cardStyle, padding: "16px" }}>
+            <Text size="2" color="gray" mb="1">New</Text>
+            <Heading size="4" style={{ color: "white" }} mb="2">Treasure Hunt</Heading>
+            <Text size="3" color="gray" mb="3">Explore the board to find hidden treasures</Text>
+            <Flex justify="between" align="center">
+              <Text size="2" color="gray">by explorer789</Text>
+              <Button size="1" variant="outline">Play</Button>
+            </Flex>
+          </Card>
+        </Grid>
+      </Box>
+    </Flex>
+  );
 }

@@ -1,25 +1,22 @@
-import { Routes, Route } from 'react-router-dom'
-import { Toaster } from '@shared/components/ui/toaster'
-import MainLayout from './layouts/MainLayout'
-import HomePage from './pages/HomePage'
-import HermitFinancePage from './pages/HermitFinancePage'
-import HumpbackLaunchpadPage from './pages/HumpbackLaunchpadPage'
-import SplashZonePage from './pages/SplashZonePage'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { MainLayout } from "./layouts/MainLayout";
+import { HomePage } from "./pages/HomePage";
+import { HermitFinancePage } from "./pages/HermitFinancePage";
+import { HumpbackLaunchpadPage } from "./pages/HumpbackLaunchpadPage";
 
 function App() {
   return (
-    <>
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<HomePage />} />
-          <Route path="/hermit" element={<HermitFinancePage />} />
-          <Route path="/launchpad" element={<HumpbackLaunchpadPage />} />
-          <Route path="/splash" element={<SplashZonePage />} />
+          <Route path="hermit-finance" element={<HermitFinancePage />} />
+          <Route path="humpback-launchpad" element={<HumpbackLaunchpadPage />} />
+          {/* TODO: Add SplashZonePage */}
         </Route>
       </Routes>
-      <Toaster />
-    </>
-  )
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

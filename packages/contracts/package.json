@@ -1,0 +1,17 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "Leviathan Smart Contracts on Sui",
+  "scripts": {
+    "build": "sui move build",
+    "test": "sui move test",
+    "publish": "sui client publish --gas-budget 100000000",
+    "publish:testnet": "sui client publish --gas-budget 100000000",
+    "clean": "rm -rf build",
+    "lint": "echo 'Move linting not implemented yet'",
+    "verify": "sui move prove"
+  },
+  "keywords": ["sui", "move", "smart-contracts", "web3", "games"],
+  "author": "Leviathan Team",
+  "license": "MIT"
+}
