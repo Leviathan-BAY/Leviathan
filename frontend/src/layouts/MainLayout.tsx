@@ -50,9 +50,11 @@ export function MainLayout() {
                   Humpback Launchpad
                 </Text>
               </Link>
-              <Text size="3" weight="medium" style={{ color: "rgba(255,255,255,0.5)", cursor: "not-allowed" }}>
-                Splash Zone
-              </Text>
+              <Link to="/splash-zone" style={{ textDecoration: "none" }}>
+                <Text size="3" weight="medium" style={{ color: "white", cursor: "pointer" }}>
+                  Splash Zone
+                </Text>
+              </Link>
 
               {/* Wallet Status */}
               <WalletStatus />

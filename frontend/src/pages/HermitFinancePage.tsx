@@ -1,12 +1,19 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid } from "@radix-ui/themes";
 import { useState } from "react";
 import { ArrowUpIcon, ArrowDownIcon } from "@radix-ui/react-icons";
+import { useCurrentAccount } from "@mysten/dapp-kit";
 import hermitLogo from "../assets/images/Hermitlogo.png";
+import { useHermitFinance, useWalletBalances } from "../contracts/hooks";
 
 export function HermitFinancePage() {
   const [fromAmount, setFromAmount] = useState("");
   const [toAmount, setToAmount] = useState("");
   const [isSwapReversed, setIsSwapReversed] = useState(false);
+
+  // Wallet and contract hooks
+  const currentAccount = useCurrentAccount();
+  const { depositSui, withdrawHSui, vaultStats, isLoading: contractLoading } = useHermitFinance();
+  const walletBalances = useWalletBalances(currentAccount?.address);
 
   const fromToken = isSwapReversed ? "hSUI" : "SUI";
   const toToken = isSwapReversed ? "SUI" : "hSUI";
@@ -29,8 +36,39 @@ export function HermitFinancePage() {
   };
 
   const handleMaxClick = () => {
-    const maxBalance = isSwapReversed ? "12.5" : "53.614"; // Mock balances
+    if (!walletBalances.data) return;
+
+    const maxBalance = isSwapReversed
+      ? walletBalances.data.hSui.balance.toString()
+      : walletBalances.data.sui.balance.toString();
     handleAmountChange(maxBalance);
+  };
+
+  const handleSwapClick = async () => {
+    if (!fromAmount || !currentAccount) {
+      alert("Please connect wallet and enter amount");
+      return;
+    }
+
+    try {
+      const amount = parseFloat(fromAmount);
+      if (isSwapReversed) {
+        // Withdraw hSUI for SUI
+        await withdrawHSui.mutateAsync(amount);
+        alert("Withdrawal successful!");
+      } else {
+        // Deposit SUI for hSUI
+        await depositSui.mutateAsync(amount);
+        alert("Deposit successful!");
+      }
+
+      // Clear form
+      setFromAmount("");
+      setToAmount("");
+    } catch (error) {
+      console.error("Swap failed:", error);
+      alert(`Swap failed: ${error.message}`);
+    }
   };
 
   return (
@@ -172,7 +210,10 @@ export function HermitFinancePage() {
               </Text>
               <Flex align="center" gap="2">
                 <Text size="2" className="text-secondary">
-                  Balance: {isSwapReversed ? "12.5" : "53.614"}
+                  Balance: {walletBalances.data
+                    ? (isSwapReversed ? walletBalances.data.hSui.formatted : walletBalances.data.sui.formatted)
+                    : (currentAccount ? "Loading..." : "Connect Wallet")
+                  }
                 </Text>
                 <Button
                   size="1"
@@ -259,7 +300,10 @@ export function HermitFinancePage() {
                 ${toAmount ? (parseFloat(toAmount) * 2.45).toFixed(2) : "0.00"}
               </Text>
               <Text size="2" className="text-secondary">
-                Balance: {isSwapReversed ? "53.614" : "0"}
+                Balance: {walletBalances.data
+                  ? (isSwapReversed ? walletBalances.data.sui.formatted : walletBalances.data.hSui.formatted)
+                  : (currentAccount ? "Loading..." : "Connect Wallet")
+                }
               </Text>
             </Flex>
           </Card>
@@ -268,18 +312,29 @@ export function HermitFinancePage() {
         {/* Swap Button */}
         <Button
           size="4"
+          disabled={!currentAccount || !fromAmount || contractLoading || depositSui.isPending || withdrawHSui.isPending}
+          onClick={handleSwapClick}
           style={{
             width: "100%",
-            background: "var(--leviathan-sky-blue)",
+            background: (!currentAccount || !fromAmount) ? "var(--gray-6)" : "var(--leviathan-sky-blue)",
             color: "white",
             borderRadius: "12px",
             fontWeight: 600,
             fontSize: "16px",
             padding: "16px",
-            border: "none"
+            border: "none",
+            opacity: (!currentAccount || !fromAmount) ? 0.5 : 1,
+            cursor: (!currentAccount || !fromAmount) ? "not-allowed" : "pointer"
           }}
         >
-          Swap Now
+          {!currentAccount
+            ? "Connect Wallet"
+            : (depositSui.isPending || withdrawHSui.isPending)
+              ? "Processing..."
+              : !fromAmount
+                ? "Enter Amount"
+                : `${isSwapReversed ? "Withdraw" : "Deposit"} ${fromAmount} ${fromToken}`
+          }
         </Button>
       </Card>
 
@@ -299,7 +354,7 @@ export function HermitFinancePage() {
             Total Value Locked
           </Text>
           <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
-            $180,155,374
+            {vaultStats.data?.totalValueLocked || "Loading..."}
           </Heading>
           <Text size="1" className="text-gradient">
             +2.4% today
@@ -341,7 +396,7 @@ export function HermitFinancePage() {
             Current APY
           </Text>
           <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
-            4.2%
+            {vaultStats.data?.currentApy || "Loading..."}
           </Heading>
           <Text size="1" className="text-gradient">
             Stable yield
@@ -362,10 +417,10 @@ export function HermitFinancePage() {
             Exchange Rate
           </Text>
           <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
-            1.001 SUI
+            {vaultStats.data?.exchangeRate || "Loading..."} SUI
           </Heading>
           <Text size="1" className="text-gradient">
-            1 hSUI = 1.001 SUI
+            1 hSUI = {vaultStats.data?.exchangeRate || "1.00"} SUI
           </Text>
         </Card>
       </Grid>

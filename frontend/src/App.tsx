@@ -3,6 +3,7 @@ import { MainLayout } from "./layouts/MainLayout";
 import { HomePage } from "./pages/HomePage";
 import { HermitFinancePage } from "./pages/HermitFinancePage";
 import { HumpbackLaunchpadPage } from "./pages/HumpbackLaunchpadPage";
+import { SplashZonePage } from "./pages/SplashZonePage";
 
 function App() {
   return (
@@ -12,7 +13,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="hermit-finance" element={<HermitFinancePage />} />
           <Route path="humpback-launchpad" element={<HumpbackLaunchpadPage />} />
-          {/* TODO: Add SplashZonePage */}
+          <Route path="splash-zone" element={<SplashZonePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

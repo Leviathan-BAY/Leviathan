@@ -1,13 +1,39 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Tabs } from "@radix-ui/themes";
+import { useCurrentAccount } from "@mysten/dapp-kit";
 import humpbackLogo from "../assets/images/Humpbacklogo.png";
+import { useGameLaunchpad, useGameMaker } from "../contracts/hooks";
+import { MOCK_GAMES } from "../contracts/constants";
 
 export function HumpbackLaunchpadPage() {
+  const currentAccount = useCurrentAccount();
+  const { publishedGames, gameStats, isLoading } = useGameLaunchpad();
+  const { createGame } = useGameMaker();
+
   const cardStyle = {
     background: "rgba(30, 41, 59, 0.4)",
     backdropFilter: "blur(16px)",
     border: "1px solid rgba(148, 163, 184, 0.1)",
     borderRadius: "16px",
     padding: "24px",
+  };
+
+  const handleCreateGame = async () => {
+    if (!currentAccount) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      await createGame.mutateAsync({
+        title: "My Custom Game",
+        handMaxSlots: 10,
+        privateAreaSlots: 3
+      });
+      alert("Game creation successful! Check your wallet for the game components object.");
+    } catch (error) {
+      console.error("Game creation failed:", error);
+      alert(`Game creation failed: ${error.message}`);
+    }
   };
 
   return (
@@ -190,12 +216,21 @@ export function HumpbackLaunchpadPage() {
                 </Box>
                 <Button
                   size="3"
+                  disabled={!currentAccount || createGame.isPending}
+                  onClick={handleCreateGame}
                   style={{
-                    background: "linear-gradient(135deg, var(--sky-9), var(--blue-9))",
-                    width: "200px"
+                    background: !currentAccount ? "var(--gray-6)" : "linear-gradient(135deg, var(--sky-9), var(--blue-9))",
+                    width: "200px",
+                    opacity: !currentAccount ? 0.5 : 1,
+                    cursor: !currentAccount ? "not-allowed" : "pointer"
                   }}
                 >
-                  Publish Game
+                  {!currentAccount
+                    ? "Connect Wallet"
+                    : createGame.isPending
+                      ? "Creating..."
+                      : "Create & Publish Game"
+                  }
                 </Button>
               </Flex>
             </Tabs.Content>
@@ -205,38 +240,51 @@ export function HumpbackLaunchpadPage() {
 
       {/* Featured Games */}
       <Box>
-        <Heading size="5" style={{ color: "white" }} mb="4">Community Games</Heading>
-        <Grid columns="3" gap="4">
-          <Card style={{ ...cardStyle, padding: "16px" }}>
-            <Text size="2" color="gray" mb="1">Featured</Text>
-            <Heading size="4" style={{ color: "white" }} mb="2">5×5 Racing</Heading>
-            <Text size="3" color="gray" mb="3">Classic token racing with special power-ups</Text>
-            <Flex justify="between" align="center">
-              <Text size="2" color="gray">by creator123</Text>
-              <Button size="1" variant="outline">Play</Button>
-            </Flex>
-          </Card>
+        <Flex justify="between" align="center" mb="4">
+          <Heading size="5" style={{ color: "white" }}>Community Games</Heading>
+          <Box>
+            <Text size="2" color="gray">
+              {gameStats.data ? `${gameStats.data.totalGames} games • ${gameStats.data.totalPlays} plays` : "Loading..."}
+            </Text>
+          </Box>
+        </Flex>
 
-          <Card style={{ ...cardStyle, padding: "16px" }}>
-            <Text size="2" color="gray" mb="1">Popular</Text>
-            <Heading size="4" style={{ color: "white" }} mb="2">Card Battle</Heading>
-            <Text size="3" color="gray" mb="3">Strategic deck-based combat system</Text>
-            <Flex justify="between" align="center">
-              <Text size="2" color="gray">by gamedev456</Text>
-              <Button size="1" variant="outline">Play</Button>
-            </Flex>
-          </Card>
+        {isLoading ? (
+          <Text size="3" color="gray">Loading community games...</Text>
+        ) : (
+          <Grid columns="3" gap="4">
+            {publishedGames.data?.slice(0, 3).map((game, index) => (
+              <Card key={game.id} style={{ ...cardStyle, padding: "16px" }}>
+                <Text size="2" color="gray" mb="1">
+                  {index === 0 ? "Featured" : index === 1 ? "Popular" : "New"}
+                </Text>
+                <Heading size="4" style={{ color: "white" }} mb="2">{game.title}</Heading>
+                <Text size="3" color="gray" mb="3">{game.description}</Text>
 
-          <Card style={{ ...cardStyle, padding: "16px" }}>
-            <Text size="2" color="gray" mb="1">New</Text>
-            <Heading size="4" style={{ color: "white" }} mb="2">Treasure Hunt</Heading>
-            <Text size="3" color="gray" mb="3">Explore the board to find hidden treasures</Text>
-            <Flex justify="between" align="center">
-              <Text size="2" color="gray">by explorer789</Text>
-              <Button size="1" variant="outline">Play</Button>
-            </Flex>
-          </Card>
-        </Grid>
+                <Flex justify="between" align="center" mb="2">
+                  <Text size="2" color="gray">{game.category}</Text>
+                  <Text size="2" style={{ color: "var(--sky-9)" }}>{game.totalPlays} plays</Text>
+                </Flex>
+
+                <Flex justify="between" align="center">
+                  <Text size="2" color="gray">
+                    Fee: {game.joinFee} MIST
+                  </Text>
+                  <Button
+                    size="1"
+                    variant="outline"
+                    disabled={!currentAccount}
+                    onClick={() => alert(`Playing ${game.title}... (Game engine integration coming soon!)`)}
+                  >
+                    {currentAccount ? "Play" : "Connect Wallet"}
+                  </Button>
+                </Flex>
+              </Card>
+            )) || (
+              <Text size="3" color="gray">No games available</Text>
+            )}
+          </Grid>
+        )}
       </Box>
     </Flex>
   );
