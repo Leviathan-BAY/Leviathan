@@ -1,3 +1,4 @@
+
 /// 게임 엔진 모듈 (Game Engine)
 module leviathan::game_engine {
     use sui::event;
@@ -5,7 +6,7 @@ module leviathan::game_engine {
 
     /// ------------------------------
     /// 에러 코드 정의
-    const E_INVALID_ACTION: u64 = 1;
+    /// const E_INVALID_ACTION: u64 = 1; not used
     const E_NOT_PLAYER_TURN: u64 = 2;
     const E_GAME_ALREADY_FINISHED: u64 = 3;
 
@@ -161,3 +162,4 @@ module leviathan::game_engine {
         });
     }
 }
+

@@ -1,24 +1,19 @@
 /// Match Settlement - Handles escrow and settlement for game matches
 module leviathan::match_settlement {
-    use sui::object::{Self, ID, UID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
     use sui::coin::{Self, Coin};
     use sui::sui::SUI;
     use sui::balance::{Self, Balance};
     use sui::event;
     use sui::clock::{Self, Clock};
-    use std::string::{String};
-    use std::vector;
-
+    use std::string::{Self, String};
     /// Error codes
     const E_INVALID_STAKE: u64 = 1;
-    const E_MATCH_NOT_FOUND: u64 = 2;
+    /// const E_MATCH_NOT_FOUND: u64 = 2; not used
     const E_UNAUTHORIZED: u64 = 3;
     const E_MATCH_ALREADY_SETTLED: u64 = 4;
-    const E_MATCH_NOT_FINISHED: u64 = 5;
+    /// const E_MATCH_NOT_FINISHED: u64 = 5; not used
     const E_INVALID_PLAYER_COUNT: u64 = 6;
-    const E_TIMEOUT_NOT_REACHED: u64 = 7;
+    /// const E_TIMEOUT_NOT_REACHED: u64 = 7; not used
 
     /// Match escrow object that holds stakes for a game match
     public struct MatchEscrow has key {
@@ -78,7 +73,7 @@ module leviathan::match_settlement {
     public entry fun create_match(
         game_id: String,
         players: vector<address>,
-        stakes: vector<Coin<SUI>>,
+        mut stakes: vector<Coin<SUI>>,
         timeout_hours: u64,
         clock: &Clock,
         ctx: &mut TxContext
@@ -226,7 +221,7 @@ module leviathan::match_settlement {
     public entry fun admin_settle_match(
         _: &AdminCap,
         escrow: &mut MatchEscrow,
-        winner: Option<address>,
+        mut winner: Option<address>,
         clock: &Clock,
         ctx: &mut TxContext
     ) {
