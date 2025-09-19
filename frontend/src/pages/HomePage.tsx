@@ -25,9 +25,16 @@ export function HomePage() {
           Create custom board games with no-code tools, publish on Sui blockchain,
           and earn rewards based on player engagement.
         </Text>
-        <Button variant="primary" btnSize="sm" glow>
-          Start Creating
-        </Button>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Button
+            variant="primary"
+            btnSize="lg"
+            glow
+            style={{ minWidth: '200px' }}
+          >
+            Start Creating
+          </Button>
+        </div>
       </Box>
 
       {/* Hermit Finance Section */}
@@ -45,7 +52,10 @@ export function HomePage() {
                 Stable value liquid staking with delta-neutral strategy.<br />
                 Protect your assets from SUI volatility.
               </Text>
-              <Button variant="secondary" className="mt-auto">
+              <Button
+                variant="primary"
+                style={{ minWidth: '160px' }}
+              >
                 Learn More
               </Button>
             </Flex>
@@ -68,7 +78,10 @@ export function HomePage() {
                 No-code game creation tool. Build custom board games<br />
                 with cards, tokens, and automated rules.
               </Text>
-              <Button variant="secondary" className="mt-auto">
+              <Button
+                variant="primary"
+                style={{ minWidth: '160px' }}
+              >
                 Create Game
               </Button>
             </Flex>
@@ -91,7 +104,10 @@ export function HomePage() {
                 Play community-created games, stake SUI,<br />
                 and compete for prizes in real-time matches.
               </Text>
-              <Button variant="secondary" className="mt-auto">
+              <Button
+                variant="primary"
+                style={{ minWidth: '160px' }}
+              >
                 Play Games
               </Button>
             </Flex>
@@ -104,19 +120,19 @@ export function HomePage() {
         <Grid columns="4" gap="4">
           <Box className="text-center">
             <Heading size="6" className="text-gradient">12+</Heading>
-            <Text size="2" className="text-muted">Games Created</Text>
+            <Text size="2" className="text-secondary">Games Created</Text>
           </Box>
           <Box className="text-center">
             <Heading size="6" className="text-gradient">1.2K</Heading>
-            <Text size="2" className="text-muted">Active Players</Text>
+            <Text size="2" className="text-secondary">Active Players</Text>
           </Box>
           <Box className="text-center">
             <Heading size="6" className="text-gradient">45K SUI</Heading>
-            <Text size="2" className="text-muted">Total Value Locked</Text>
+            <Text size="2" className="text-secondary">Total Value Locked</Text>
           </Box>
           <Box className="text-center">
             <Heading size="6" className="text-gradient">$18K</Heading>
-            <Text size="2" className="text-muted">Creator Earnings</Text>
+            <Text size="2" className="text-secondary">Creator Earnings</Text>
           </Box>
         </Grid>
       </Card>

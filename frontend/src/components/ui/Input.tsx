@@ -10,17 +10,20 @@ interface InputProps extends ComponentPropsWithoutRef<"input"> {
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ variant = "glass", inputSize = "md", error = false, className = "", ...props }, ref) => {
     const getInputStyles = (): string => {
-      const baseStyles = "w-full transition-all duration-200 focus:outline-none";
+      // 전환 시간: 일반 전환 300ms 사용
+      const baseStyles = "w-full transition-all duration-300 ease-out focus:outline-none";
 
       const variants = {
-        default: "border border-[rgba(148,163,184,0.1)] bg-[rgba(30,41,59,0.4)] text-white",
-        glass: "backdrop-blur-[8px] border border-[rgba(148,163,184,0.1)] bg-[rgba(30,41,59,0.4)] text-white focus:border-[#38BDF8] focus:shadow-[0_0_20px_rgba(56,189,248,0.3)]"
+        default: "border border-[rgba(56,189,248,0.2)] bg-[rgba(30,41,59,0.4)] text-[#F8FAFC]",
+        // 글래스 배경과 얇은 테두리, 포커스 시 테두리 색상 변화 및 글로우
+        glass: "backdrop-blur-[16px] border border-[rgba(56,189,248,0.2)] bg-[rgba(30,41,59,0.4)] text-[#F8FAFC] focus:border-[#38BDF8] focus:shadow-[0_0_20px_rgba(56,189,248,0.3)]"
       };
 
+      // 폰트 크기 계층에 맞춘 크기
       const sizes = {
-        sm: "px-3 py-2 text-sm rounded-lg",
-        md: "px-4 py-3 text-base rounded-xl",
-        lg: "px-5 py-4 text-lg rounded-xl"
+        sm: "px-3 py-2 text-[14px] rounded-lg",     // Body Small: 14px
+        md: "px-4 py-3 text-[16px] rounded-lg",     // Body Medium: 16px
+        lg: "px-5 py-4 text-[18px] rounded-lg"      // Body Large: 18px
       };
 
       const errorStyles = error
@@ -30,7 +33,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       return `${baseStyles} ${variants[variant]} ${sizes[inputSize]} ${errorStyles} ${className}`;
     };
 
-    const placeholderColor = "placeholder:text-[#64748B]";
+    // 플레이스홀더 텍스트 일관성 - Muted 색상 사용
+    const placeholderColor = "placeholder:text-[rgba(248,250,252,0.5)]";
 
     return (
       <input
@@ -55,7 +59,7 @@ const Label = forwardRef<HTMLLabelElement, LabelProps>(
     return (
       <label
         ref={ref}
-        className={`text-sm font-semibold text-[#CBD5E1] mb-2 inline-block ${className}`}
+        className={`text-[14px] font-semibold text-[#94A3B8] mb-2 inline-block ${className}`}
         {...props}
       >
         {children}
@@ -77,7 +81,7 @@ const ErrorMessage = forwardRef<HTMLParagraphElement, ErrorMessageProps>(
     return (
       <p
         ref={ref}
-        className={`text-red-400 text-sm mt-1 ${className}`}
+        className={`text-red-400 text-[12px] mt-1 ${className}`}
         {...props}
       >
         {children}

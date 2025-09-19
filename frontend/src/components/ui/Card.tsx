@@ -10,18 +10,23 @@ interface CardProps extends ComponentPropsWithoutRef<"div"> {
 const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ variant = "default", padding = "md", className = "", children, ...props }, ref) => {
     const getCardStyles = (): string => {
-      const baseStyles = "backdrop-blur-[16px] border border-[rgba(148,163,184,0.1)] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300";
+      // 디자인 시스템: 글래스모피즘 효과 - backdrop-filter: blur(16px), 테두리: 1px solid rgba(56, 189, 248, 0.2)
+      const baseStyles = "backdrop-blur-[16px] border border-[rgba(56,189,248,0.2)] rounded-[16px] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-300 ease-out";
 
       const variants = {
+        // 기본: 투명도 40-60% 사용 rgba(30, 41, 59, 0.4)
         default: "bg-[rgba(30,41,59,0.4)]",
-        hover: "bg-[rgba(30,41,59,0.4)] hover:bg-[rgba(30,41,59,0.6)] hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(0,0,0,0.3),0_0_20px_rgba(56,189,248,0.3)]",
+        // 호버: 수면 위로 살짝 떠오르는 듯한 미묘한 상승 효과와 함께, 카드 외곽에 Primary Glow가 강화됨
+        hover: "bg-[rgba(30,41,59,0.4)] hover:bg-[rgba(30,41,59,0.5)] hover:translate-y-[-2px] hover:shadow-[0_8px_32px_rgba(0,0,0,0.3),0_0_20px_rgba(56,189,248,0.4)]",
+        // 글로우: Primary Glow - 하늘색 계열의 은은한 발광 효과
         glow: "bg-[rgba(30,41,59,0.4)] shadow-[0_8px_32px_rgba(0,0,0,0.3),0_0_20px_rgba(56,189,248,0.3)]"
       };
 
+      // 간격 시스템: 4px 기반 일관된 간격 (16px, 24px, 32px)
       const paddings = {
-        sm: "p-4",
-        md: "p-6",
-        lg: "p-8"
+        sm: "p-4",   // 16px
+        md: "p-6",   // 24px
+        lg: "p-8"    // 32px
       };
 
       return `${baseStyles} ${variants[variant]} ${paddings[padding]} ${className}`;
@@ -72,7 +77,7 @@ const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
     return (
       <h3
         ref={ref}
-        className={`text-xl font-bold text-white mb-2 ${className}`}
+        className={`text-[24px] leading-[1.5] font-bold text-[#F8FAFC] mb-2 ${className}`}
         {...props}
       >
         {children}
@@ -93,7 +98,7 @@ const CardDescription = forwardRef<HTMLParagraphElement, CardDescriptionProps>(
     return (
       <p
         ref={ref}
-        className={`text-[#CBD5E1] text-base leading-relaxed ${className}`}
+        className={`text-[#94A3B8] text-[16px] leading-relaxed ${className}`}
         {...props}
       >
         {children}
