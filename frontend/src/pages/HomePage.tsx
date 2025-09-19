@@ -10,18 +10,18 @@ export function HomePage() {
     <Flex direction="column" gap="0">
       {/* Hero Section - Leviathan */}
       <Box className="text-center section-padding slide-in-up" style={{ minHeight: "80vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <Heading size="9" mb="4" className="text-gradient">
-          Build. Play. Earn.
+        <Heading size="9" mb="4" className="text-primary" style={{ fontSize: "4rem", fontWeight: 900 }}>
+          Leviathan
+        </Heading>
+        <Heading size="7" mb="6" className="text-gradient" style={{ fontSize: "2rem", fontWeight: 600 }}>
+          Sui Game Launchpad
         </Heading>
         <img
           src={LeviathanLogo}
           alt="Leviathan Logo"
           style={{ width: "360px", height: "500px", margin: "20px auto" }}
         />
-        <Heading size="9" mb="4" style={{ fontSize: "3rem", fontWeight: 800, color: "#1E3A8A" }}>
-          Leviathan
-        </Heading>
-        <Text size="5" className="text-secondary mb-6" style={{ maxWidth: "600px", margin: "0 auto" }}>
+        <Text size="5" className="text-primary mb-6" style={{ maxWidth: "600px", margin: "0 auto" }}>
           Create custom board games with no-code tools, publish on Sui blockchain,
           and earn rewards based on player engagement.
         </Text>
@@ -48,7 +48,7 @@ export function HomePage() {
                 style={{ width: "360px", height: "360px" }}
               />
               <Heading size="7" className="text-primary">Hermit Finance</Heading>
-              <Text size="4" className="text-secondary text-center">
+              <Text size="4" className="text-primary text-center">
                 Stable value liquid staking with delta-neutral strategy.<br />
                 Protect your assets from SUI volatility.
               </Text>
@@ -74,7 +74,7 @@ export function HomePage() {
                 style={{ width: "360px", height: "360px" }}
               />
               <Heading size="7" className="text-primary">Humpback Launchpad</Heading>
-              <Text size="4" className="text-secondary text-center">
+              <Text size="4" className="text-primary text-center">
                 No-code game creation tool. Build custom board games<br />
                 with cards, tokens, and automated rules.
               </Text>
@@ -100,7 +100,7 @@ export function HomePage() {
                 style={{ width: "360px", height: "360px" }}
               />
               <Heading size="7" className="text-primary">Splash Zone</Heading>
-              <Text size="4" className="text-secondary text-center">
+              <Text size="4" className="text-primary text-center">
                 Play community-created games, stake SUI,<br />
                 and compete for prizes in real-time matches.
               </Text>
@@ -120,19 +120,19 @@ export function HomePage() {
         <Grid columns="4" gap="4">
           <Box className="text-center">
             <Heading size="6" className="text-gradient">12+</Heading>
-            <Text size="2" className="text-secondary">Games Created</Text>
+            <Text size="2" className="text-primary">Games Created</Text>
           </Box>
           <Box className="text-center">
             <Heading size="6" className="text-gradient">1.2K</Heading>
-            <Text size="2" className="text-secondary">Active Players</Text>
+            <Text size="2" className="text-primary">Active Players</Text>
           </Box>
           <Box className="text-center">
             <Heading size="6" className="text-gradient">45K SUI</Heading>
-            <Text size="2" className="text-secondary">Total Value Locked</Text>
+            <Text size="2" className="text-primary">Total Value Locked</Text>
           </Box>
           <Box className="text-center">
             <Heading size="6" className="text-gradient">$18K</Heading>
-            <Text size="2" className="text-secondary">Creator Earnings</Text>
+            <Text size="2" className="text-primary">Creator Earnings</Text>
           </Box>
         </Grid>
       </Card>

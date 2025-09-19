@@ -1,179 +1,457 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid } from "@radix-ui/themes";
 import { useState } from "react";
+import { ArrowUpIcon, ArrowDownIcon } from "@radix-ui/react-icons";
 import hermitLogo from "../assets/images/Hermitlogo.png";
 
 export function HermitFinancePage() {
-  const [depositAmount, setDepositAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [fromAmount, setFromAmount] = useState("");
+  const [toAmount, setToAmount] = useState("");
+  const [isSwapReversed, setIsSwapReversed] = useState(false);
+
+  const fromToken = isSwapReversed ? "hSUI" : "SUI";
+  const toToken = isSwapReversed ? "SUI" : "hSUI";
+  const exchangeRate = isSwapReversed ? 1.001 : 0.999;
+
+  const handleAmountChange = (value: string) => {
+    setFromAmount(value);
+    if (value) {
+      const calculated = (parseFloat(value) * exchangeRate).toFixed(6);
+      setToAmount(calculated);
+    } else {
+      setToAmount("");
+    }
+  };
+
+  const handleSwapDirection = () => {
+    setIsSwapReversed(!isSwapReversed);
+    setFromAmount("");
+    setToAmount("");
+  };
+
+  const handleMaxClick = () => {
+    const maxBalance = isSwapReversed ? "12.5" : "53.614"; // Mock balances
+    handleAmountChange(maxBalance);
+  };
 
   return (
-    <Flex direction="column" gap="8">
-      {/* Header */}
-      <Flex align="center" gap="4" style={{ textAlign: "center" }} justify="center">
-        <img
-          src={hermitLogo}
-          alt="Hermit Finance"
-          style={{ width: "64px", height: "64px" }}
-        />
-        <Box>
-          <Heading size="8" color="white">Hermit Finance</Heading>
-          <Text size="4" color="gray">
-            Delta-neutral liquid staking for stable value storage
-          </Text>
-        </Box>
-      </Flex>
-
-      {/* Stats Cards */}
-      <Grid columns="4" gap="4">
-        <Card p="4" style={{
-          background: "rgba(30, 41, 59, 0.4)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(148, 163, 184, 0.1)",
-        }}>
-          <Text size="2" color="gray">Total Value Locked</Text>
-          <Heading size="5" color="white">45,234 SUI</Heading>
-        </Card>
-        <Card p="4" style={{
-          background: "rgba(30, 41, 59, 0.4)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(148, 163, 184, 0.1)",
-        }}>
-          <Text size="2" color="gray">hSUI Supply</Text>
-          <Heading size="5" color="white">45,180 hSUI</Heading>
-        </Card>
-        <Card p="4" style={{
-          background: "rgba(30, 41, 59, 0.4)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(148, 163, 184, 0.1)",
-        }}>
-          <Text size="2" color="gray">APY</Text>
-          <Heading size="5" color="white">4.2%</Heading>
-        </Card>
-        <Card p="4" style={{
-          background: "rgba(30, 41, 59, 0.4)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(148, 163, 184, 0.1)",
-        }}>
-          <Text size="2" color="gray">Exchange Rate</Text>
-          <Heading size="5" color="white">1.001 SUI</Heading>
-        </Card>
-      </Grid>
-
-      {/* Deposit/Withdraw Interface */}
-      <Grid columns="2" gap="6">
-        {/* Deposit Card */}
-        <Card p="6" style={{
-          background: "rgba(30, 41, 59, 0.4)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(148, 163, 184, 0.1)",
-          borderRadius: "16px",
-        }}>
-          <Heading size="5" color="white" mb="4">Deposit SUI</Heading>
-          <Text size="3" color="gray" mb="4">
-            Convert your SUI to hSUI for stable value storage
-          </Text>
-
-          <Box mb="4">
-            <Text size="2" color="gray" mb="2">Amount to deposit</Text>
-            <input
-              type="number"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-              placeholder="0.0"
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid rgba(148, 163, 184, 0.2)",
-                background: "rgba(0, 0, 0, 0.2)",
-                color: "white",
-                fontSize: "16px",
-              }}
-            />
-            <Text size="2" color="gray" mt="1">
-              You will receive: {depositAmount ? (parseFloat(depositAmount) * 0.999).toFixed(3) : "0"} hSUI
+    <Flex direction="column" gap="8" style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 24px" }}>
+      {/* Hero Banner */}
+      <Card
+        style={{
+          background: "linear-gradient(135deg, var(--leviathan-sky-blue), var(--leviathan-deep-blue))",
+          borderRadius: "20px",
+          padding: "32px",
+          position: "relative",
+          overflow: "hidden",
+          border: "1px solid rgba(56, 189, 248, 0.3)",
+          boxShadow: "0 0 40px rgba(56, 189, 248, 0.2)"
+        }}
+      >
+        <Flex align="center" justify="between">
+          <Box style={{ maxWidth: "60%" }}>
+            <Heading size="8" style={{ color: "white", marginBottom: "16px", fontWeight: 700 }}>
+              Introducing hSUI: Stable Value Liquid Staked SUI for Leviathan
+            </Heading>
+            <Text size="4" style={{ color: "rgba(255, 255, 255, 0.9)", lineHeight: 1.6 }}>
+              Stake your SUI on Hermit Finance to receive hSUI — a yield-generating token you can use across the Sui DeFi ecosystem.
             </Text>
           </Box>
+          <Box style={{ position: "relative" }}>
+            <img
+              src={hermitLogo}
+              alt="Hermit Finance"
+              style={{
+                width: "120px",
+                height: "120px",
+                filter: "drop-shadow(0 0 20px rgba(255, 255, 255, 0.3))"
+              }}
+            />
+          </Box>
+        </Flex>
+        <Button
+          size="3"
+          variant="outline"
+          style={{
+            marginTop: "24px",
+            background: "rgba(255, 255, 255, 0.1)",
+            border: "1px solid rgba(255, 255, 255, 0.3)",
+            color: "white",
+            backdropFilter: "blur(10px)"
+          }}
+        >
+          Learn More
+        </Button>
+      </Card>
 
-          <Button
-            size="3"
+      {/* Swap Interface */}
+      <Card
+        style={{
+          background: "var(--leviathan-bg-glass)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid var(--leviathan-border-glass)",
+          borderRadius: "16px",
+          padding: "32px",
+          maxWidth: "480px",
+          margin: "0 auto",
+          width: "100%"
+        }}
+      >
+        <Flex align="center" justify="between" style={{ marginBottom: "24px" }}>
+          <Heading size="6" className="text-primary">
+            Swap
+          </Heading>
+          <Flex align="center" gap="2">
+            <Text size="2" className="text-secondary">0.5%</Text>
+            <Box
+              style={{
+                width: "16px",
+                height: "16px",
+                borderRadius: "50%",
+                border: "1px solid var(--leviathan-text-secondary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "10px",
+                color: "var(--leviathan-text-secondary)"
+              }}
+            >
+              ?
+            </Box>
+          </Flex>
+        </Flex>
+
+        {/* From Section */}
+        <Box style={{ marginBottom: "8px" }}>
+          <Text size="2" className="text-secondary" style={{ marginBottom: "8px", display: "block" }}>
+            From
+          </Text>
+          <Card
             style={{
-              width: "100%",
-              background: "linear-gradient(135deg, var(--sky-9), var(--blue-9))",
+              background: "rgba(0, 0, 0, 0.2)",
+              border: "1px solid var(--leviathan-border-glass)",
+              borderRadius: "12px",
+              padding: "16px"
             }}
           >
-            Deposit SUI
+            <Flex justify="between" align="center" style={{ marginBottom: "12px" }}>
+              <input
+                type="number"
+                value={fromAmount}
+                onChange={(e) => handleAmountChange(e.target.value)}
+                placeholder="0.0"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  color: "var(--leviathan-text-primary)",
+                  fontSize: "24px",
+                  fontWeight: 600,
+                  width: "60%"
+                }}
+              />
+              <Button
+                size="2"
+                style={{
+                  background: "var(--leviathan-sky-blue)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "20px",
+                  padding: "8px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px"
+                }}
+              >
+                <span style={{ fontSize: "16px" }}>⚡</span>
+                {fromToken}
+              </Button>
+            </Flex>
+            <Flex justify="between" align="center">
+              <Text size="2" className="text-secondary">
+                ${fromAmount ? (parseFloat(fromAmount) * 2.45).toFixed(2) : "0.00"}
+              </Text>
+              <Flex align="center" gap="2">
+                <Text size="2" className="text-secondary">
+                  Balance: {isSwapReversed ? "12.5" : "53.614"}
+                </Text>
+                <Button
+                  size="1"
+                  variant="ghost"
+                  onClick={handleMaxClick}
+                  style={{
+                    color: "var(--leviathan-sky-blue)",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    padding: "4px 8px"
+                  }}
+                >
+                  MAX
+                </Button>
+              </Flex>
+            </Flex>
+          </Card>
+        </Box>
+
+        {/* Swap Direction Button */}
+        <Flex justify="center" style={{ margin: "16px 0" }}>
+          <Button
+            size="2"
+            variant="ghost"
+            onClick={handleSwapDirection}
+            style={{
+              background: "var(--leviathan-bg-glass)",
+              border: "1px solid var(--leviathan-border-glass)",
+              borderRadius: "12px",
+              padding: "8px",
+              color: "var(--leviathan-text-primary)"
+            }}
+          >
+            <Box style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+              <ArrowUpIcon width="12" height="12" />
+              <ArrowDownIcon width="12" height="12" />
+            </Box>
           </Button>
+        </Flex>
+
+        {/* To Section */}
+        <Box style={{ marginBottom: "24px" }}>
+          <Text size="2" className="text-secondary" style={{ marginBottom: "8px", display: "block" }}>
+            To
+          </Text>
+          <Card
+            style={{
+              background: "rgba(0, 0, 0, 0.2)",
+              border: "1px solid var(--leviathan-border-glass)",
+              borderRadius: "12px",
+              padding: "16px"
+            }}
+          >
+            <Flex justify="between" align="center" style={{ marginBottom: "12px" }}>
+              <Text
+                size="6"
+                style={{
+                  color: "var(--leviathan-text-primary)",
+                  fontWeight: 600,
+                  width: "60%"
+                }}
+              >
+                {toAmount || "0.0"}
+              </Text>
+              <Button
+                size="2"
+                style={{
+                  background: toToken === "hSUI" ? "var(--leviathan-ocean)" : "var(--leviathan-cyan)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "20px",
+                  padding: "8px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px"
+                }}
+              >
+                <span style={{ fontSize: "16px" }}>💧</span>
+                {toToken}
+              </Button>
+            </Flex>
+            <Flex justify="between" align="center">
+              <Text size="2" className="text-secondary">
+                ${toAmount ? (parseFloat(toAmount) * 2.45).toFixed(2) : "0.00"}
+              </Text>
+              <Text size="2" className="text-secondary">
+                Balance: {isSwapReversed ? "53.614" : "0"}
+              </Text>
+            </Flex>
+          </Card>
+        </Box>
+
+        {/* Swap Button */}
+        <Button
+          size="4"
+          style={{
+            width: "100%",
+            background: "var(--leviathan-sky-blue)",
+            color: "white",
+            borderRadius: "12px",
+            fontWeight: 600,
+            fontSize: "16px",
+            padding: "16px",
+            border: "none"
+          }}
+        >
+          Swap Now
+        </Button>
+      </Card>
+
+      {/* Statistics Grid */}
+      <Grid columns="4" gap="4" style={{ maxWidth: "1000px", margin: "0 auto" }}>
+        <Card
+          style={{
+            background: "var(--leviathan-bg-glass)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid var(--leviathan-border-glass)",
+            borderRadius: "16px",
+            padding: "24px",
+            textAlign: "center"
+          }}
+        >
+          <Text size="2" className="text-secondary" style={{ marginBottom: "8px", display: "block" }}>
+            Total Value Locked
+          </Text>
+          <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
+            $180,155,374
+          </Heading>
+          <Text size="1" className="text-gradient">
+            +2.4% today
+          </Text>
         </Card>
 
-        {/* Withdraw Card */}
-        <Card p="6" style={{
-          background: "rgba(30, 41, 59, 0.4)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(148, 163, 184, 0.1)",
-          borderRadius: "16px",
-        }}>
-          <Heading size="5" color="white" mb="4">Withdraw SUI</Heading>
-          <Text size="3" color="gray" mb="4">
-            Convert your hSUI back to SUI with accrued rewards
+        <Card
+          style={{
+            background: "var(--leviathan-bg-glass)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid var(--leviathan-border-glass)",
+            borderRadius: "16px",
+            padding: "24px",
+            textAlign: "center"
+          }}
+        >
+          <Text size="2" className="text-secondary" style={{ marginBottom: "8px", display: "block" }}>
+            hSUI Supply
           </Text>
+          <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
+            73,542 hSUI
+          </Heading>
+          <Text size="1" className="text-gradient">
+            +156 today
+          </Text>
+        </Card>
 
-          <Box mb="4">
-            <Text size="2" color="gray" mb="2">Amount to withdraw</Text>
-            <input
-              type="number"
-              value={withdrawAmount}
-              onChange={(e) => setWithdrawAmount(e.target.value)}
-              placeholder="0.0"
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid rgba(148, 163, 184, 0.2)",
-                background: "rgba(0, 0, 0, 0.2)",
-                color: "white",
-                fontSize: "16px",
-              }}
-            />
-            <Text size="2" color="gray" mt="1">
-              You will receive: {withdrawAmount ? (parseFloat(withdrawAmount) * 1.001).toFixed(3) : "0"} SUI
-            </Text>
-          </Box>
+        <Card
+          style={{
+            background: "var(--leviathan-bg-glass)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid var(--leviathan-border-glass)",
+            borderRadius: "16px",
+            padding: "24px",
+            textAlign: "center"
+          }}
+        >
+          <Text size="2" className="text-secondary" style={{ marginBottom: "8px", display: "block" }}>
+            Current APY
+          </Text>
+          <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
+            4.2%
+          </Heading>
+          <Text size="1" className="text-gradient">
+            Stable yield
+          </Text>
+        </Card>
 
-          <Button
-            size="3"
-            variant="outline"
-            style={{ width: "100%" }}
-          >
-            Withdraw SUI
-          </Button>
+        <Card
+          style={{
+            background: "var(--leviathan-bg-glass)",
+            backdropFilter: "blur(16px)",
+            border: "1px solid var(--leviathan-border-glass)",
+            borderRadius: "16px",
+            padding: "24px",
+            textAlign: "center"
+          }}
+        >
+          <Text size="2" className="text-secondary" style={{ marginBottom: "8px", display: "block" }}>
+            Exchange Rate
+          </Text>
+          <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
+            1.001 SUI
+          </Heading>
+          <Text size="1" className="text-gradient">
+            1 hSUI = 1.001 SUI
+          </Text>
         </Card>
       </Grid>
 
       {/* How it works */}
-      <Card p="6" style={{
-        background: "rgba(30, 41, 59, 0.4)",
-        backdropFilter: "blur(16px)",
-        border: "1px solid rgba(148, 163, 184, 0.1)",
-        borderRadius: "16px",
-      }}>
-        <Heading size="5" color="white" mb="4">How Delta-Neutral Strategy Works</Heading>
-        <Grid columns="3" gap="4">
-          <Box>
-            <Heading size="3" color="white" mb="2">1. Deposit</Heading>
-            <Text size="3" color="gray">
+      <Card
+        style={{
+          background: "var(--leviathan-bg-glass)",
+          backdropFilter: "blur(16px)",
+          border: "1px solid var(--leviathan-border-glass)",
+          borderRadius: "16px",
+          padding: "32px",
+          maxWidth: "1000px",
+          margin: "0 auto"
+        }}
+      >
+        <Heading size="6" className="text-primary" style={{ marginBottom: "24px", textAlign: "center" }}>
+          How Delta-Neutral Strategy Works
+        </Heading>
+        <Grid columns="3" gap="6">
+          <Box style={{ textAlign: "center" }}>
+            <Box
+              style={{
+                width: "60px",
+                height: "60px",
+                borderRadius: "50%",
+                background: "var(--leviathan-sky-blue)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                fontSize: "24px"
+              }}
+            >
+              💰
+            </Box>
+            <Heading size="4" className="text-primary" style={{ marginBottom: "12px" }}>
+              1. Deposit
+            </Heading>
+            <Text size="3" className="text-secondary">
               50% of your SUI goes to staking validators for rewards
             </Text>
           </Box>
-          <Box>
-            <Heading size="3" color="white" mb="2">2. Hedge</Heading>
-            <Text size="3" color="gray">
+          <Box style={{ textAlign: "center" }}>
+            <Box
+              style={{
+                width: "60px",
+                height: "60px",
+                borderRadius: "50%",
+                background: "var(--leviathan-ocean)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                fontSize: "24px"
+              }}
+            >
+              🛡️
+            </Box>
+            <Heading size="4" className="text-primary" style={{ marginBottom: "12px" }}>
+              2. Hedge
+            </Heading>
+            <Text size="3" className="text-secondary">
               50% becomes collateral for 1x short position on perps DEX
             </Text>
           </Box>
-          <Box>
-            <Heading size="3" color="white" mb="2">3. Stable Value</Heading>
-            <Text size="3" color="gray">
+          <Box style={{ textAlign: "center" }}>
+            <Box
+              style={{
+                width: "60px",
+                height: "60px",
+                borderRadius: "50%",
+                background: "var(--leviathan-teal)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                fontSize: "24px"
+              }}
+            >
+              📈
+            </Box>
+            <Heading size="4" className="text-primary" style={{ marginBottom: "12px" }}>
+              3. Stable Value
+            </Heading>
+            <Text size="3" className="text-secondary">
               Price movements cancel out, you keep staking rewards
             </Text>
           </Box>
