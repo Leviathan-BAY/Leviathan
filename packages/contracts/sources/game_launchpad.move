@@ -1,10 +1,6 @@
 /// Game Launchpad - Allows creators to publish games and manage game registry
 module leviathan::game_launchpad {
-    use sui::object::{Self, UID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
     use sui::coin::{Self, Coin};
-    use sui::sui::SUI;
     use sui::table::{Self, Table};
     use sui::event;
     use std::string::{Self, String};
@@ -13,8 +9,8 @@ module leviathan::game_launchpad {
     /// Error codes
     const E_INSUFFICIENT_PAYMENT: u64 = 1;
     const E_GAME_NOT_FOUND: u64 = 2;
-    const E_UNAUTHORIZED: u64 = 3;
-    const E_GAME_ALREADY_EXISTS: u64 = 4;
+    /// const E_UNAUTHORIZED: u64 = 3; not used
+    /// const E_GAME_ALREADY_EXISTS: u64 = 4; not used
 
     /// Admin capability for managing the launchpad
     public struct AdminCap has key, store {
@@ -108,7 +104,7 @@ module leviathan::game_launchpad {
         assert!(payment_amount >= registry.launch_fee, E_INSUFFICIENT_PAYMENT);
 
         // Burn the payment (or transfer to treasury in future versions)
-        coin::burn_for_testing(payment);
+        coin::burn(payment);
 
         // Generate game ID
         let game_id = generate_game_id(registry.next_game_id);
@@ -160,6 +156,7 @@ module leviathan::game_launchpad {
         game_id: String,
         plays_increment: u64,
         stake_increment: u64,
+        ctx: &mut TxContext
     ) {
         if (table::contains(&registry.games, game_id)) {
             let game_info = table::borrow_mut(&mut registry.games, game_id);
