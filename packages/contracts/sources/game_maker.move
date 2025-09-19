@@ -8,6 +8,7 @@ module leviathan::game_maker {
     use std::vector;
     use std::option::{Self, Option};
     use sui::event;
+    use std::string::{Self, String};
 
     /// Error codes
     const E_INVALID_SPACE_TYPE: u64 = 1;
@@ -260,7 +261,9 @@ module leviathan::game_maker {
         };
 
         if (table::contains(&components.shared_board.cells, position)) {
-            table::remove(&mut components.shared_board.cells, position);
+            let _old_cell = table::remove(&mut components.shared_board.cells, position);
+            // 여기서 old_cell의 필드를 읽기만 해도 됨
+            let _ = _old_cell.cell_type;
         };
         table::add(&mut components.shared_board.cells, position, cell);
 
@@ -375,7 +378,16 @@ module leviathan::game_maker {
             },
         };
 
+        // ✅ 기존 값 제거 후 소비
+        if (option::is_some(&cell.movement_rules)) {
+            let old_rules = option::extract(&mut cell.movement_rules);
+            // 필요시 이벤트 emit
+            let _ = old_rules.movement_type;
+        };
+
+        // ✅ 새 값 저장
         cell.movement_rules = option::some(movement_rules);
+
         components.last_modified = tx_context::epoch_timestamp_ms(ctx);
     }
 
@@ -612,6 +624,5 @@ module leviathan::game_maker {
             created_at: 0,
             last_modified: 0,
         }
->>>>>>> Stashed changes
     }
 }
