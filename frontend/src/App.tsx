@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage";
 import { HermitFinancePage } from "./pages/HermitFinancePage";
 import { HumpbackLaunchpadPage } from "./pages/HumpbackLaunchpadPage";
 import { SplashZonePage } from "./pages/SplashZonePage";
+import { DiscordCallbackPage } from "./pages/DiscordCallbackPage";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="hermit-finance" element={<HermitFinancePage />} />
           <Route path="humpback-launchpad" element={<HumpbackLaunchpadPage />} />
           <Route path="splash-zone" element={<SplashZonePage />} />
+          <Route path="auth/discord/callback" element={<DiscordCallbackPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

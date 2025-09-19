@@ -1,11 +1,19 @@
-import { Flex, Box, Heading, Text, Card, Button, Grid, Badge } from "@radix-ui/themes";
+import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator } from "@radix-ui/themes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
+import { PersonIcon, ChatBubbleIcon, PlayIcon } from "@radix-ui/react-icons";
 import { useGameLaunchpad } from "../contracts/hooks";
 import { MOCK_GAMES } from "../contracts/constants";
+import { useDiscord } from "../hooks/useDiscord";
+import { DiscordAuth } from "../components/DiscordAuth";
+import { MatchmakingModal } from "../components/MatchmakingModal";
+import { useState } from "react";
 
 export function SplashZonePage() {
   const currentAccount = useCurrentAccount();
   const { publishedGames, gameStats, getGameById, isLoading } = useGameLaunchpad();
+  const { isAuthenticated: isDiscordConnected, getDisplayName, getAvatarUrl } = useDiscord();
+  const [matchmakingOpen, setMatchmakingOpen] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<{id: string, title: string, maxPlayers: number} | null>(null);
 
   const cardStyle = {
     background: "rgba(30, 41, 59, 0.4)",
@@ -19,8 +27,21 @@ export function SplashZonePage() {
 
   const handlePlayGame = (gameId: string) => {
     const game = getGameById(gameId);
+    if (!currentAccount) {
+      alert("Please connect your Sui wallet first to play games!");
+      return;
+    }
+    if (!isDiscordConnected) {
+      alert("Please connect your Discord account to play with other players!");
+      return;
+    }
     if (game) {
-      alert(`🎮 Starting ${game.title}...\n\nFeatures:\n• ${game.description}\n• ${game.category} game\n• Fee: ${game.joinFee} MIST\n• Max players: ${game.maxPlayers}\n\n⚠️ Game engine integration coming soon!`);
+      setSelectedGame({
+        id: gameId,
+        title: game.title,
+        maxPlayers: game.maxPlayers
+      });
+      setMatchmakingOpen(true);
     }
   };
 
@@ -31,9 +52,63 @@ export function SplashZonePage() {
         <Heading size="8" style={{ color: "white", marginBottom: "16px" }}>
           🌊 Splash Zone
         </Heading>
-        <Text size="4" color="gray">
+        <Text size="4" color="gray" style={{ marginBottom: "16px" }}>
           Discover and play amazing Web3 games created by the community
         </Text>
+
+        {/* Player Connection Status */}
+        <Card style={{
+          background: "rgba(30, 41, 59, 0.6)",
+          border: "1px solid rgba(148, 163, 184, 0.2)",
+          borderRadius: "12px",
+          padding: "16px",
+          maxWidth: "600px",
+          margin: "0 auto"
+        }}>
+          <Text size="3" style={{ color: "white", marginBottom: "12px" }}>
+            Ready to Play?
+          </Text>
+          <Flex align="center" justify="center" gap="6">
+            <Flex align="center" gap="2">
+              <Text size="2" style={{ color: currentAccount ? "var(--green-9)" : "var(--orange-9)" }}>
+                {currentAccount ? "✓" : "○"}
+              </Text>
+              <Text size="2" color="gray">Sui Wallet</Text>
+            </Flex>
+            <Separator orientation="vertical" size="1" style={{ height: "16px" }} />
+            <Flex align="center" gap="2">
+              <Text size="2" style={{ color: isDiscordConnected ? "var(--green-9)" : "var(--orange-9)" }}>
+                {isDiscordConnected ? "✓" : "○"}
+              </Text>
+              <Text size="2" color="gray">Discord Profile</Text>
+            </Flex>
+            {isDiscordConnected && (
+              <>
+                <Separator orientation="vertical" size="1" style={{ height: "16px" }} />
+                <Flex align="center" gap="2">
+                  <Avatar
+                    src={getAvatarUrl(24) || undefined}
+                    fallback={getDisplayName()?.charAt(0) || "?"}
+                    size="1"
+                  />
+                  <Text size="2" style={{ color: "white" }}>
+                    {getDisplayName()}
+                  </Text>
+                </Flex>
+              </>
+            )}
+          </Flex>
+          {(!currentAccount || !isDiscordConnected) && (
+            <Text size="2" color="gray" style={{ marginTop: "8px" }}>
+              {!currentAccount && !isDiscordConnected
+                ? "Connect both wallet and Discord to start playing"
+                : !currentAccount
+                ? "Connect your Sui wallet to continue"
+                : "Connect your Discord profile to play with others"
+              }
+            </Text>
+          )}
+        </Card>
       </Box>
 
       {/* Stats Banner */}
@@ -112,16 +187,18 @@ export function SplashZonePage() {
             </Box>
             <Button
               size="4"
-              disabled={!currentAccount}
+              disabled={!currentAccount || !isDiscordConnected}
               onClick={() => handlePlayGame(publishedGames.data[0].id)}
               style={{
-                background: "var(--leviathan-sky-blue)",
+                background: (currentAccount && isDiscordConnected) ? "var(--leviathan-sky-blue)" : "var(--gray-6)",
                 color: "white",
                 padding: "16px 32px",
                 fontSize: "16px",
+                opacity: (currentAccount && isDiscordConnected) ? 1 : 0.6
               }}
             >
-              {currentAccount ? "Play Now" : "Connect Wallet"}
+              {!currentAccount ? "Connect Wallet" :
+               !isDiscordConnected ? "Connect Discord" : "Play Now"}
             </Button>
           </Flex>
         </Card>
@@ -200,20 +277,21 @@ export function SplashZonePage() {
 
                 <Button
                   size="3"
-                  disabled={!currentAccount}
+                  disabled={!currentAccount || !isDiscordConnected}
                   style={{
                     width: "100%",
-                    background: currentAccount ? "var(--leviathan-ocean)" : "var(--gray-6)",
+                    background: (currentAccount && isDiscordConnected) ? "var(--leviathan-ocean)" : "var(--gray-6)",
                     color: "white",
                     border: "none",
-                    opacity: currentAccount ? 1 : 0.6,
+                    opacity: (currentAccount && isDiscordConnected) ? 1 : 0.6,
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
                     handlePlayGame(game.id);
                   }}
                 >
-                  {currentAccount ? "Play Game" : "Connect Wallet"}
+                  {!currentAccount ? "Connect Wallet" :
+                   !isDiscordConnected ? "Connect Discord" : "Play Game"}
                 </Button>
               </Card>
             ))}
@@ -265,6 +343,20 @@ export function SplashZonePage() {
           </Box>
         </Grid>
       </Card>
+
+      {/* Matchmaking Modal */}
+      {selectedGame && (
+        <MatchmakingModal
+          isOpen={matchmakingOpen}
+          onClose={() => {
+            setMatchmakingOpen(false);
+            setSelectedGame(null);
+          }}
+          gameId={selectedGame.id}
+          gameTitle={selectedGame.title}
+          maxPlayers={selectedGame.maxPlayers}
+        />
+      )}
     </Flex>
   );
 }
