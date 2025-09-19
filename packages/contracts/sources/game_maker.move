@@ -1,36 +1,46 @@
 /// Game Making Tool - Implements the game creation interface described in PRD 4.2.5
 /// Handles the three-space system: Hand, Shared Board (5x5), and Private Area
 module leviathan::game_maker {
-    use sui::object::{Self, UID, ID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
     use sui::table::{Self, Table};
-    use std::vector;
-    use std::option::{Self, Option};
     use sui::event;
     use std::string::{Self, String};
 
     /// Error codes
+    #[allow(unused_const)]
     const E_INVALID_SPACE_TYPE: u64 = 1;
+    #[allow(unused_const)]
     const E_INVALID_CELL_TYPE: u64 = 2;
+    #[allow(unused_const)]
     const E_INVALID_POSITION: u64 = 3;
+    #[allow(unused_const)]
     const E_UNAUTHORIZED: u64 = 4;
+    #[allow(unused_const)]
     const E_GAME_NOT_FOUND: u64 = 5;
+    #[allow(unused_const)]
     const E_INVALID_HAND_SIZE: u64 = 6;
+    #[allow(unused_const)]
     const E_INVALID_PRIVATE_AREA_SIZE: u64 = 7;
 
     /// Cell types as defined in PRD 4.2.5
+    #[allow(unused_const)]
     const CELL_TYPE_IMAGE: u8 = 0;
+    #[allow(unused_const)]
     const CELL_TYPE_DECK: u8 = 1;
+    #[allow(unused_const)]
     const CELL_TYPE_TRACK: u8 = 2;
 
     /// Game space types
+    #[allow(unused_const)]
     const SPACE_TYPE_HAND: u8 = 0;
+    #[allow(unused_const)]
     const SPACE_TYPE_SHARED_BOARD: u8 = 1;
+    #[allow(unused_const)]
     const SPACE_TYPE_PRIVATE_AREA: u8 = 2;
 
     /// Movement rule types for Track cells
+    #[allow(unused_const)]
     const MOVEMENT_TYPE_DIRECT_MAPPING: u8 = 0;
+    #[allow(unused_const)]
     const MOVEMENT_TYPE_DISTANCE_BASED: u8 = 1;
 
     /// Game Components - Main structure containing all game elements
@@ -549,7 +559,7 @@ module leviathan::game_maker {
         position: u8,
         from_pos: u8,
         to_pos: u8,
-        ctx: &mut TxContext
+        _ctx: &mut TxContext
     ) {
         let cell = table::borrow_mut(&mut components.shared_board.cells, position);
         assert!(cell.cell_type == CELL_TYPE_TRACK, E_INVALID_CELL_TYPE);

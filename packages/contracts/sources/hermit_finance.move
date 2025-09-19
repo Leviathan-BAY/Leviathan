@@ -5,14 +5,15 @@ module leviathan::hermit_finance {
     use sui::sui::SUI;
     use sui::balance::{Self, Balance};
     use sui::event;
-    use sui::tx_context::{Self, TxContext};
-    use sui::object::{Self, UID};
-    use sui::transfer;
 
     /// Error codes
+    #[allow(unused_const)]
     const E_INSUFFICIENT_BALANCE: u64 = 1;
+    #[allow(unused_const)]
     const E_ZERO_AMOUNT: u64 = 2;
+    #[allow(unused_const)]
     const E_VAULT_PAUSED: u64 = 3;
+    #[allow(unused_const)]
     const E_UNAUTHORIZED: u64 = 4;
 
     /// One-time witness for module initialization
