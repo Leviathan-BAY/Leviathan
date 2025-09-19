@@ -27,6 +27,11 @@ class DiscordService {
   private listeners: ((state: DiscordAuthState) => void)[] = [];
 
   constructor() {
+    // Validate environment configuration
+    if (!this.CLIENT_ID) {
+      console.warn('Discord Client ID not found in environment variables. Discord functionality will be disabled.');
+    }
+
     // Load saved auth state from localStorage
     this.loadAuthState();
   }
@@ -66,11 +71,13 @@ class DiscordService {
   // Redirect to Discord OAuth
   login() {
     if (!this.CLIENT_ID) {
-      console.error('Discord Client ID not configured');
+      console.error('Discord Client ID not configured. Please check your .env file.');
+      alert('Discord is not configured. Please check the setup instructions in the README.');
       return;
     }
 
     const authUrl = this.getAuthUrl();
+    console.log('Redirecting to Discord:', authUrl);
     window.location.href = authUrl;
   }
 
