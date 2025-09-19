@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Flex, Box, Text, Card, Spinner } from '@radix-ui/themes';
 import { useDiscord } from '../hooks/useDiscord';
+import { scrollToTop } from '../hooks/useScrollToTop';
 
 export function DiscordCallbackPage() {
   const navigate = useNavigate();
@@ -19,25 +20,42 @@ export function DiscordCallbackPage() {
       if (error) {
         setStatus('error');
         setErrorMessage(`Discord authentication error: ${error}`);
-        setTimeout(() => navigate('/'), 3000);
+        setTimeout(() => {
+          scrollToTop();
+          navigate('/');
+        }, 3000);
         return;
       }
 
       if (!code || !state) {
         setStatus('error');
         setErrorMessage('Missing authentication parameters');
-        setTimeout(() => navigate('/'), 3000);
+        setTimeout(() => {
+          scrollToTop();
+          navigate('/');
+        }, 3000);
         return;
       }
 
       try {
         await handleCallback(code, state);
         setStatus('success');
-        setTimeout(() => navigate('/'), 2000);
+
+        // Get the page user was on before Discord login (stored in localStorage by Discord service)
+        const returnUrl = localStorage.getItem('discord_return_url') || '/';
+        localStorage.removeItem('discord_return_url');
+
+        setTimeout(() => {
+          scrollToTop();
+          navigate(returnUrl);
+        }, 1000);
       } catch (error) {
         setStatus('error');
         setErrorMessage(error instanceof Error ? error.message : 'Authentication failed');
-        setTimeout(() => navigate('/'), 3000);
+        setTimeout(() => {
+          scrollToTop();
+          navigate('/');
+        }, 3000);
       }
     };
 
@@ -85,7 +103,7 @@ export function DiscordCallbackPage() {
               Discord Connected Successfully!
             </Text>
             <Text size="2" color="gray">
-              Redirecting you back to Leviathan...
+              Taking you back where you left off...
             </Text>
           </>
         )}
