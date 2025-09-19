@@ -78,10 +78,15 @@ module leviathan::game_maker {
     }
 
     /// Movement rules for Track cells
-    public struct MovementRules has store {
-        movement_type: u8, // DIRECT_MAPPING or DISTANCE_BASED
-        mapping: Table<u8, u8>, // source_position -> target_position (for direct mapping)
-        distance_formula: Option<String>, // For dice/yut results
+    public struct MappingPair has drop, store {
+        from: u8,
+        to: u8,
+    }
+
+    public struct MovementRules has drop, store {
+        movement_type: u8,
+        mapping: vector<MappingPair>,
+        distance_formula: Option<String>,
     }
 
     /// Deck configuration for Deck cells
@@ -368,25 +373,26 @@ module leviathan::game_maker {
         let cell = table::borrow_mut(&mut components.shared_board.cells, position);
         assert!(cell.cell_type == CELL_TYPE_TRACK, E_INVALID_CELL_TYPE);
 
-        let movement_rules = MovementRules {
-            movement_type,
-            mapping: table::new(ctx),
-            distance_formula: if (vector::length(&distance_formula) > 0) {
-                option::some(string::utf8(distance_formula))
-            } else {
-                option::none()
-            },
-        };
-
-        // ✅ 기존 값 제거 후 소비
         if (option::is_some(&cell.movement_rules)) {
-            let old_rules = option::extract(&mut cell.movement_rules);
-            // 필요시 이벤트 emit
-            let _ = old_rules.movement_type;
+            let rules_ref = option::borrow_mut(&mut cell.movement_rules);
+            rules_ref.movement_type = movement_type;
+            rules_ref.mapping = vector::empty<MappingPair>();
+            if (vector::length(&distance_formula) > 0) {
+                rules_ref.distance_formula = option::some(string::utf8(distance_formula));
+            } else {
+                rules_ref.distance_formula = option::none();
+            };
+        } else {
+            cell.movement_rules = option::some(MovementRules {
+                movement_type,
+                mapping: vector::empty<MappingPair>(),
+                distance_formula: if (vector::length(&distance_formula) > 0) {
+                    option::some(string::utf8(distance_formula))
+                } else {
+                    option::none()
+                },
+            });
         };
-
-        // ✅ 새 값 저장
-        cell.movement_rules = option::some(movement_rules);
 
         components.last_modified = tx_context::epoch_timestamp_ms(ctx);
     }
@@ -545,14 +551,12 @@ module leviathan::game_maker {
         to_pos: u8,
         ctx: &mut TxContext
     ) {
-        assert!(tx_context::sender(ctx) == components.creator, E_UNAUTHORIZED);
-
         let cell = table::borrow_mut(&mut components.shared_board.cells, position);
         assert!(cell.cell_type == CELL_TYPE_TRACK, E_INVALID_CELL_TYPE);
 
         if (option::is_some(&cell.movement_rules)) {
-            let rules = option::borrow_mut(&mut cell.movement_rules);
-            table::add(&mut rules.mapping, from_pos, to_pos);
+            let rules_ref = option::borrow_mut(&mut cell.movement_rules);
+            vector::push_back(&mut rules_ref.mapping, MappingPair { from: from_pos, to: to_pos });
         };
     }
 
