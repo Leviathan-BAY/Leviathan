@@ -15,6 +15,9 @@ module leviathan::hermit_finance {
     const E_VAULT_PAUSED: u64 = 3;
     const E_UNAUTHORIZED: u64 = 4;
 
+    /// One-time witness for module initialization
+    public struct HERMIT_FINANCE has drop {}
+
     /// The hSui token type
     public struct HSUI has drop {}
 
@@ -50,7 +53,7 @@ module leviathan::hermit_finance {
     }
 
     /// Initialize the Hermit Finance module
-    fun init(witness: HSUI, ctx: &mut TxContext) {
+    fun init(witness: HERMIT_FINANCE, ctx: &mut TxContext) {
         // Create the treasury cap for hSui
         let (treasury, metadata) = coin::create_currency(
             witness,
