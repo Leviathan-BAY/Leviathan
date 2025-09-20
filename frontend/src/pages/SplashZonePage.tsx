@@ -100,15 +100,13 @@ export function SplashZonePage() {
       });
       console.log(result);
 
-      // Create local instance for navigation
-      const instanceId = result.digest; // 고유 ID 생성
-      console.log(instanceId);
-      const instance = {
-        id: instanceId,
+      // Use the instance returned from createGameInstance directly
+      const instance = result.instance || {
+        id: result.digest || result.instanceId || `game-${Date.now()}`,
         templateId: game.package_id,
         entryFee: Number(game.stake_amount) / 1_000_000_000, // mist → SUI 변환
         currentPlayers: 1,
-        maxPlayers: 2, // 대략 최대 플레이어 수 설정
+        maxPlayers: game.template?.pieces_per_player || 2,
         prizePool: 0,
         status: "waiting",
         players: [
@@ -127,7 +125,7 @@ export function SplashZonePage() {
           state: { instance }, // 여기서 instance 통째로 넘김
         });
       } else {
-        alert("Failed to create local game instance");
+        alert("Failed to create game instance");
       }
     } catch (error) {
       console.error("Failed to create game instance:", error);

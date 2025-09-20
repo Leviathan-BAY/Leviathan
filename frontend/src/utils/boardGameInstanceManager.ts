@@ -169,19 +169,6 @@ export class BoardGameInstanceManager {
     const instance: BoardGameInstance = {
       id: instanceId,
       templateId,
-      creatorId,
-      players: [creatorPlayer],
-      maxPlayers,
-      currentPlayers: 1,
-      status: 'waiting',
-      prizePool: 0,
-      entryFee,
-      createdAt: Date.now(),
-      currentPlayerIndex: 0,
-      gameState: {
-        turn: 1,
-        phase: 'setup'
-      }
     };
 
     this.instances.set(instanceId, instance);

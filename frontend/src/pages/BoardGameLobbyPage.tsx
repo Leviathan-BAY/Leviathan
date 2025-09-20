@@ -185,7 +185,10 @@ export function BoardGameLobbyPage() {
     const updatedInstance = boardGameInstanceManager.getInstance(instanceId);
     setInstance(updatedInstance);
 
-    navigate(`/board-game/${instanceId}`, {state: { instance },});
+    // If player just became ready, navigate to game play page
+    if (newReadyState) {
+      navigate('/board-game-play');
+    }
   };
 
   const handleStartGame = async () => {
