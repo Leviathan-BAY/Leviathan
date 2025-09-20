@@ -1,35 +1,33 @@
-// React hooks for contract interactions
+// React hooks for Leviathan contract interactions
 import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Transaction } from "@mysten/sui/transactions";
-import { CONTRACT_ADDRESSES, MOCK_GAMES } from "./constants";
+import { MOCK_BOARD_GAME_TEMPLATES } from "./constants";
 import {
   HermitFinanceTransactions,
-  GameMakerTransactions,
-  GameLaunchpadTransactions,
+  BoardGameTemplateTransactions,
   TransactionUtils
 } from "./transactions";
 
-// Hermit Finance Hooks
+// Hermit Finance (hSUI) Hooks
 export const useHermitFinance = () => {
-  const client = useSuiClient();
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();
 
   const depositSui = useMutation({
-    mutationFn: async (amount: number) => {
-      const amountMist = TransactionUtils.suiToMist(amount);
-      const tx = HermitFinanceTransactions.depositSui(amountMist);
+    mutationFn: async (data: { vaultId: string; amount: number }) => {
+      const amountMist = TransactionUtils.suiToMist(data.amount);
+      const tx = HermitFinanceTransactions.depositSui(data.vaultId, amountMist);
 
       return new Promise((resolve, reject) => {
         signAndExecute(
           { transaction: tx },
           {
-            onSuccess: (result) => {
-              console.log("Deposit successful:", result);
+            onSuccess: (result: any) => {
+              console.log("SUI deposit successful:", result);
               resolve(result);
             },
-            onError: (error) => {
-              console.error("Deposit failed:", error);
+            onError: (error: any) => {
+              console.error("SUI deposit failed:", error);
               reject(error);
             }
           }
@@ -38,21 +36,20 @@ export const useHermitFinance = () => {
     }
   });
 
-  const withdrawHSui = useMutation({
-    mutationFn: async (amount: number) => {
-      const amountMist = TransactionUtils.suiToMist(amount);
-      const tx = HermitFinanceTransactions.withdrawHSui(amountMist);
+  const redeemHSui = useMutation({
+    mutationFn: async (data: { vaultId: string; hSuiCoinId: string }) => {
+      const tx = HermitFinanceTransactions.redeemHSui(data.vaultId, data.hSuiCoinId);
 
       return new Promise((resolve, reject) => {
         signAndExecute(
           { transaction: tx },
           {
-            onSuccess: (result) => {
-              console.log("Withdrawal successful:", result);
+            onSuccess: (result: any) => {
+              console.log("hSUI redemption successful:", result);
               resolve(result);
             },
-            onError: (error) => {
-              console.error("Withdrawal failed:", error);
+            onError: (error: any) => {
+              console.error("hSUI redemption failed:", error);
               reject(error);
             }
           }
@@ -61,208 +58,274 @@ export const useHermitFinance = () => {
     }
   });
 
-  // Mock data for now - replace with actual queries when contracts are deployed
+  // Mock vault statistics - replace with actual queries when contracts are deployed
   const vaultStats = useQuery({
-    queryKey: ['hermit-finance-stats'],
+    queryKey: ['hermit-finance-vault-stats'],
     queryFn: async () => {
-      // This will query actual contract data when deployed
+      // TODO: Query actual vault data using get_vault_info
       return {
-        totalValueLocked: "1,234,567 SUI",
-        currentApy: "5.2%",
-        exchangeRate: "1.00",
-        userBalance: "0 SUI",
-        userHSuiBalance: "0 hSUI"
+        suiBalance: "2,847,392 SUI",
+        hSuiSupply: "2,844,547 hSUI",
+        exchangeRate: "1.001",
+        feeRate: "0.5%",
+        totalDeposits: "5,691,939 SUI",
+        totalWithdrawals: "2,844,547 SUI"
       };
-    }
+    },
+    refetchInterval: 30000 // Refetch every 30 seconds
   });
 
   return {
     depositSui,
-    withdrawHSui,
+    redeemHSui,
     vaultStats,
-    isLoading: depositSui.isPending || withdrawHSui.isPending || vaultStats.isLoading
+    isLoading: depositSui.isPending || redeemHSui.isPending || vaultStats.isLoading
   };
 };
 
-// Game Maker Hooks
-export const useGameMaker = () => {
+// Board Game Template Hooks
+export const useBoardGameTemplate = () => {
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();
-
-  const createGame = useMutation({
-    mutationFn: async (gameData: {
-      title: string;
-      handMaxSlots: number;
-      privateAreaSlots: number;
-    }) => {
-      const tx = GameMakerTransactions.createGameComponents(
-        gameData.title,
-        gameData.handMaxSlots,
-        gameData.privateAreaSlots
-      );
-
-      return new Promise((resolve, reject) => {
-        signAndExecute(
-          { transaction: tx },
-          {
-            onSuccess: (result) => {
-              console.log("Game creation successful:", result);
-              resolve(result);
-            },
-            onError: (error) => {
-              console.error("Game creation failed:", error);
-              reject(error);
-            }
-          }
-        );
-      });
-    }
-  });
-
-  const configureBoardCell = useMutation({
-    mutationFn: async (cellData: {
-      gameId: string;
-      position: number;
-      cellType: number;
-      backgroundImageUrl: string;
-      specialEffects: string[];
-    }) => {
-      const tx = GameMakerTransactions.configureSharedBoardCell(
-        cellData.gameId,
-        cellData.position,
-        cellData.cellType,
-        cellData.backgroundImageUrl,
-        cellData.specialEffects
-      );
-
-      return new Promise((resolve, reject) => {
-        signAndExecute(
-          { transaction: tx },
-          {
-            onSuccess: (result) => {
-              console.log("Board cell configuration successful:", result);
-              resolve(result);
-            },
-            onError: (error) => {
-              console.error("Board cell configuration failed:", error);
-              reject(error);
-            }
-          }
-        );
-      });
-    }
-  });
-
-  const addCard = useMutation({
-    mutationFn: async (cardData: {
-      gameId: string;
-      cardId: number;
-      frontImageUrl: string;
-      backImageUrl: string;
-      symbol: string;
-      number: number;
-    }) => {
-      const tx = GameMakerTransactions.createCard(
-        cardData.gameId,
-        cardData.cardId,
-        cardData.frontImageUrl,
-        cardData.backImageUrl,
-        cardData.symbol,
-        cardData.number
-      );
-
-      return new Promise((resolve, reject) => {
-        signAndExecute(
-          { transaction: tx },
-          {
-            onSuccess: (result) => {
-              console.log("Card creation successful:", result);
-              resolve(result);
-            },
-            onError: (error) => {
-              console.error("Card creation failed:", error);
-              reject(error);
-            }
-          }
-        );
-      });
-    }
-  });
-
-  return {
-    createGame,
-    configureBoardCell,
-    addCard,
-    isLoading: createGame.isPending || configureBoardCell.isPending || addCard.isPending
-  };
-};
-
-// Game Launchpad Hooks
-export const useGameLaunchpad = () => {
-  const client = useSuiClient();
   const queryClient = useQueryClient();
 
-  // Mock published games for now
-  const publishedGames = useQuery({
-    queryKey: ['published-games'],
-    queryFn: async () => {
-      // This will query actual contract data when deployed
-      return MOCK_GAMES;
-    }
-  });
-
-  const gameStats = useQuery({
-    queryKey: ['game-stats'],
-    queryFn: async () => {
-      return {
-        totalGames: MOCK_GAMES.length,
-        totalPlays: MOCK_GAMES.reduce((sum, game) => sum + game.totalPlays, 0),
-        totalValueStaked: MOCK_GAMES.reduce((sum, game) => sum + game.totalStaked, 0),
-        activeGames: MOCK_GAMES.filter(game => game.isActive).length
-      };
-    }
-  });
-
-  const getGameById = (gameId: string) => {
-    return MOCK_GAMES.find(game => game.id === gameId);
-  };
-
-  return {
-    publishedGames,
-    gameStats,
-    getGameById,
-    isLoading: publishedGames.isLoading || gameStats.isLoading
-  };
-};
-
-// Generic contract interaction hook
-export const useContractTransaction = () => {
-  const { mutate: signAndExecute, isPending } = useSignAndExecuteTransaction();
-
-  const executeTransaction = async (transaction: Transaction): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      signAndExecute(
-        { transaction },
-        {
-          onSuccess: (result) => {
-            console.log("Transaction successful:", result);
-            resolve(result);
-          },
-          onError: (error) => {
-            console.error("Transaction failed:", error);
-            reject(error);
-          }
-        }
+  const createTemplate = useMutation({
+    mutationFn: async (templateData: {
+      name: string;
+      description: string;
+      diceMin: number;
+      diceMax: number;
+      piecesPerPlayer: number;
+      stakeAmount: number;
+    }) => {
+      const tx = BoardGameTemplateTransactions.createGameTemplate(
+        templateData.name,
+        templateData.description,
+        templateData.diceMin,
+        templateData.diceMax,
+        templateData.piecesPerPlayer,
+        TransactionUtils.suiToMist(templateData.stakeAmount)
       );
-    });
-  };
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Template creation successful:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Template creation failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['board-game-templates'] });
+    }
+  });
+
+  const setBoardConfiguration = useMutation({
+    mutationFn: async (configData: {
+      templateId: string;
+      positions: number[];
+      cellTypes: number[];
+    }) => {
+      const tx = BoardGameTemplateTransactions.setMultipleCells(
+        configData.templateId,
+        configData.positions,
+        configData.cellTypes
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Board configuration successful:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Board configuration failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    }
+  });
+
+  const setStartPositions = useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+      positions: number[];
+    }) => {
+      const tx = BoardGameTemplateTransactions.setStartPositions(
+        data.templateId,
+        data.positions
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Start positions set successfully:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Setting start positions failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    }
+  });
+
+  const setFinishPositions = useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+      positions: number[];
+    }) => {
+      const tx = BoardGameTemplateTransactions.setFinishPositions(
+        data.templateId,
+        data.positions
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Finish positions set successfully:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Setting finish positions failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    }
+  });
 
   return {
-    executeTransaction,
-    isLoading: isPending
+    createTemplate,
+    setBoardConfiguration,
+    setStartPositions,
+    setFinishPositions,
+    isLoading: createTemplate.isPending || setBoardConfiguration.isPending ||
+               setStartPositions.isPending || setFinishPositions.isPending
   };
 };
 
-// Wallet balance hooks
+// Board Game Instance Hooks (for playing games)
+export const useBoardGameInstance = () => {
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+
+  const startGame = useMutation({
+    mutationFn: async (gameData: {
+      templateId: string;
+      stakeAmount: number;
+    }) => {
+      const tx = BoardGameTemplateTransactions.startGame(
+        gameData.templateId,
+        TransactionUtils.suiToMist(gameData.stakeAmount)
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Game instance started:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Failed to start game:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    }
+  });
+
+  const joinGame = useMutation({
+    mutationFn: async (gameData: {
+      gameInstanceId: string;
+      templateId: string;
+      stakeAmount: number;
+    }) => {
+      const tx = BoardGameTemplateTransactions.joinGame(
+        gameData.gameInstanceId,
+        gameData.templateId,
+        TransactionUtils.suiToMist(gameData.stakeAmount)
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Successfully joined game:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Failed to join game:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    }
+  });
+
+  const rollDiceAndMove = useMutation({
+    mutationFn: async (moveData: {
+      gameInstanceId: string;
+      templateId: string;
+      pieceIndex: number;
+      randomObjectId: string;
+    }) => {
+      const tx = BoardGameTemplateTransactions.rollDiceAndMove(
+        moveData.gameInstanceId,
+        moveData.templateId,
+        moveData.pieceIndex,
+        moveData.randomObjectId
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Move successful:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Move failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    }
+  });
+
+  return {
+    startGame,
+    joinGame,
+    rollDiceAndMove,
+    isLoading: startGame.isPending || joinGame.isPending || rollDiceAndMove.isPending
+  };
+};
+
+// Wallet Balance Hooks
 export const useWalletBalances = (address?: string) => {
   const client = useSuiClient();
 
@@ -275,26 +338,21 @@ export const useWalletBalances = (address?: string) => {
         // Get SUI balance
         const suiBalance = await client.getBalance({ owner: address });
 
-        // Mock hSUI balance for now
-        const hSuiBalance = {
-          coinType: "0x0::hermit_finance::HSUI",
-          coinObjectCount: 0,
-          totalBalance: "0",
-          lockedBalance: {}
-        };
-
+        // TODO: Get actual hSUI balance from contract
         return {
           sui: {
             balance: TransactionUtils.mistToSui(BigInt(suiBalance.totalBalance)),
-            formatted: `${TransactionUtils.mistToSui(BigInt(suiBalance.totalBalance)).toFixed(4)} SUI`
+            formatted: `${TransactionUtils.mistToSui(BigInt(suiBalance.totalBalance)).toFixed(4)} SUI`,
+            raw: suiBalance.totalBalance
           },
           hSui: {
             balance: 0,
-            formatted: "0.0000 hSUI"
+            formatted: "0.0000 hSUI",
+            raw: "0"
           }
         };
       } catch (error) {
-        console.error("Failed to fetch balances:", error);
+        console.error("Failed to fetch wallet balances:", error);
         return null;
       }
     },
@@ -303,4 +361,54 @@ export const useWalletBalances = (address?: string) => {
   });
 
   return balances;
+};
+
+// Game Templates Query Hook
+export const useBoardGameTemplates = () => {
+  const templates = useQuery({
+    queryKey: ['board-game-templates'],
+    queryFn: async () => {
+      // TODO: Query actual templates from contract
+      return MOCK_BOARD_GAME_TEMPLATES;
+    },
+    refetchInterval: 30000
+  });
+
+  return templates;
+};
+
+// Generic Contract Transaction Hook
+export const useContractTransaction = () => {
+  const { mutate: signAndExecute, isPending } = useSignAndExecuteTransaction();
+
+  const executeTransaction = async (
+    transaction: Transaction,
+    options?: {
+      onSuccess?: (result: any) => void;
+      onError?: (error: any) => void;
+    }
+  ): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      signAndExecute(
+        { transaction },
+        {
+          onSuccess: (result: any) => {
+            console.log("Transaction successful:", result);
+            options?.onSuccess?.(result);
+            resolve(result);
+          },
+          onError: (error: any) => {
+            console.error("Transaction failed:", error);
+            options?.onError?.(error);
+            reject(error);
+          }
+        }
+      );
+    });
+  };
+
+  return {
+    executeTransaction,
+    isLoading: isPending
+  };
 };

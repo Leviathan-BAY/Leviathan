@@ -1,19 +1,31 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator } from "@radix-ui/themes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
-import { PersonIcon, ChatBubbleIcon, PlayIcon } from "@radix-ui/react-icons";
-import { useGameLaunchpad } from "../contracts/hooks";
-import { MOCK_GAMES } from "../contracts/constants";
+import { useBoardGameTemplates } from "../contracts/hooks";
+import { GAME_LIMITS } from "../contracts/constants";
 import { useDiscord } from "../hooks/useDiscord";
-import { DiscordAuth } from "../components/DiscordAuth";
 import { MatchmakingModal } from "../components/MatchmakingModal";
 import { useState } from "react";
 
 export function SplashZonePage() {
   const currentAccount = useCurrentAccount();
-  const { publishedGames, gameStats, getGameById, isLoading } = useGameLaunchpad();
+  const { data: publishedGames, isLoading } = useBoardGameTemplates();
   const { isAuthenticated: isDiscordConnected, getDisplayName, getAvatarUrl } = useDiscord();
   const [matchmakingOpen, setMatchmakingOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<{id: string, title: string, maxPlayers: number} | null>(null);
+
+  // Mock game stats for now
+  const gameStats = { 
+    data: { 
+      totalGames: publishedGames?.length || 0, 
+      totalPlays: publishedGames?.reduce((sum, game) => sum + (game.totalGames || 0), 0) || 0,
+      totalValueStaked: publishedGames?.reduce((sum, game) => sum + (game.totalStaked || 0), 0) || 0,
+      activeGames: publishedGames?.filter(game => game.isActive).length || 0
+    } 
+  };
+
+  const getGameById = (gameId: string) => {
+    return publishedGames?.find(game => game.id === gameId);
+  };
 
   const cardStyle = {
     background: "rgba(30, 41, 59, 0.4)",
@@ -38,8 +50,8 @@ export function SplashZonePage() {
     if (game) {
       setSelectedGame({
         id: gameId,
-        title: game.title,
-        maxPlayers: game.maxPlayers
+        title: game.name,
+        maxPlayers: game.piecesPerPlayer * 4 // Estimate max players from pieces per player
       });
       setMatchmakingOpen(true);
     }
@@ -149,7 +161,7 @@ export function SplashZonePage() {
       </Card>
 
       {/* Featured Game */}
-      {publishedGames.data && publishedGames.data.length > 0 && (
+      {publishedGames && publishedGames.length > 0 && (
         <Card
           style={{
             ...cardStyle,
@@ -170,25 +182,25 @@ export function SplashZonePage() {
                 ⭐ Featured
               </Badge>
               <Heading size="7" style={{ color: "white", marginBottom: "12px" }}>
-                {publishedGames.data[0].title}
+                {publishedGames[0].name}
               </Heading>
               <Text size="4" color="gray" style={{ marginBottom: "16px" }}>
-                {publishedGames.data[0].description}
+                {publishedGames[0].description}
               </Text>
               <Flex gap="4" align="center">
-                <Badge color="cyan">{publishedGames.data[0].category}</Badge>
+                <Badge color="cyan">Board Game</Badge>
                 <Text size="3" color="gray">
-                  {publishedGames.data[0].totalPlays} plays
+                  {publishedGames[0].totalGames} games
                 </Text>
                 <Text size="3" color="gray">
-                  Fee: {publishedGames.data[0].joinFee} MIST
+                  Fee: {publishedGames[0].stakeAmount / 1000000000} SUI
                 </Text>
               </Flex>
             </Box>
             <Button
               size="4"
               disabled={!currentAccount || !isDiscordConnected}
-              onClick={() => handlePlayGame(publishedGames.data[0].id)}
+              onClick={() => handlePlayGame(publishedGames[0].id)}
               style={{
                 background: (currentAccount && isDiscordConnected) ? "var(--leviathan-sky-blue)" : "var(--gray-6)",
                 color: "white",
@@ -212,9 +224,9 @@ export function SplashZonePage() {
 
         {isLoading ? (
           <Text size="3" color="gray">Loading games...</Text>
-        ) : publishedGames.data && publishedGames.data.length > 0 ? (
+        ) : publishedGames && publishedGames.length > 0 ? (
           <Grid columns="3" gap="6">
-            {publishedGames.data.map((game) => (
+            {publishedGames.map((game) => (
               <Card
                 key={game.id}
                 style={{
@@ -252,7 +264,7 @@ export function SplashZonePage() {
                 </Box>
 
                 <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
-                  {game.title}
+                  {game.name}
                 </Heading>
 
                 <Text size="3" color="gray" style={{ marginBottom: "12px", minHeight: "40px" }}>
@@ -260,18 +272,18 @@ export function SplashZonePage() {
                 </Text>
 
                 <Flex justify="between" align="center" style={{ marginBottom: "12px" }}>
-                  <Badge color="gray">{game.category}</Badge>
+                  <Badge color="gray">Board Game</Badge>
                   <Text size="2" color="gray">
-                    {game.totalPlays} plays
+                    {game.totalGames} games
                   </Text>
                 </Flex>
 
                 <Flex justify="between" align="center" style={{ marginBottom: "16px" }}>
                   <Text size="2" color="gray">
-                    Fee: {game.joinFee} MIST
+                    Fee: {game.stakeAmount / 1000000000} SUI
                   </Text>
                   <Text size="2" color="gray">
-                    Max: {game.maxPlayers} players
+                    Max: {game.piecesPerPlayer * 4} players
                   </Text>
                 </Flex>
 
@@ -325,7 +337,7 @@ export function SplashZonePage() {
             </Heading>
             <Text size="3" color="gray">
               1. Visit Humpback Launchpad<br/>
-              2. Design your game with our 5×5 board system<br/>
+              2. Design your game with our {GAME_LIMITS.BOARD_SIZE}×{GAME_LIMITS.BOARD_SIZE} board system<br/>
               3. Test your game mechanics<br/>
               4. Publish to Splash Zone
             </Text>

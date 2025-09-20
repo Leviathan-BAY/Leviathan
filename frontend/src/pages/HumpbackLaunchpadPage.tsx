@@ -1,16 +1,27 @@
-import { Flex, Box, Heading, Text, Card, Button, Grid, Tabs, Badge, Separator } from "@radix-ui/themes";
+import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Separator } from "@radix-ui/themes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { PlusIcon, Pencil2Icon, PlayIcon, StarIcon, PersonIcon, CubeIcon, StackIcon } from "@radix-ui/react-icons";
 import humpbackLogo from "../assets/images/Humpbacklogo.png";
-import { useGameLaunchpad, useGameMaker } from "../contracts/hooks";
-import { MOCK_GAMES } from "../contracts/constants";
+import { useBoardGameTemplate, useBoardGameTemplates } from "../contracts/hooks";
+import { GAME_LIMITS } from "../contracts/constants";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export function HumpbackLaunchpadPage() {
   const currentAccount = useCurrentAccount();
-  const { publishedGames, gameStats, isLoading } = useGameLaunchpad();
-  const { createGame } = useGameMaker();
+  const { data: publishedGames, isLoading: templatesLoading } = useBoardGameTemplates();
+  const { createTemplate, isLoading: createLoading } = useBoardGameTemplate();
+  
+  // Mock game stats for now
+  const gameStats = { 
+    data: { 
+      totalGames: publishedGames?.length || 0, 
+      totalPlays: publishedGames?.reduce((sum, game) => sum + (game.totalGames || 0), 0) || 0,
+      totalValueStaked: publishedGames?.reduce((sum, game) => sum + (game.totalStaked || 0), 0) || 0,
+      activeGames: publishedGames?.filter(game => game.isActive).length || 0
+    } 
+  };
+  const isLoading = templatesLoading || createLoading;
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -44,15 +55,18 @@ export function HumpbackLaunchpadPage() {
     }
 
     try {
-      await createGame.mutateAsync({
-        title: `My ${template} Game`,
-        handMaxSlots: template === "board" ? 5 : 10,
-        privateAreaSlots: 3
+      await createTemplate.mutateAsync({
+        name: `My ${template} Game`,
+        description: `A ${template} game created with Humpback Launchpad`,
+        diceMin: 1,
+        diceMax: 6,
+        piecesPerPlayer: 3,
+        stakeAmount: 1.0
       });
-      alert("Game creation successful! Check your wallet for the game components object.");
+      alert("Game template creation successful! Check your wallet for the template object.");
     } catch (error) {
-      console.error("Game creation failed:", error);
-      alert(`Game creation failed: ${error.message}`);
+      console.error("Game template creation failed:", error);
+      alert(`Game template creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -106,7 +120,7 @@ export function HumpbackLaunchpadPage() {
               </Box>
               <Heading size="5" style={{ color: "white" }} mb="3">Board Game</Heading>
               <Text size="3" color="gray" mb="4">
-                Monopoly-style games with a 5×5 board, player tokens, and movement mechanics. Perfect for strategy games.
+                Monopoly-style games with a {GAME_LIMITS.BOARD_SIZE}×{GAME_LIMITS.BOARD_SIZE} board, player tokens, and movement mechanics. Perfect for strategy games.
               </Text>
 
               {/* Mini Board Preview */}
@@ -118,19 +132,19 @@ export function HumpbackLaunchpadPage() {
               }}>
                 <div style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(5, 1fr)",
+                  gridTemplateColumns: `repeat(${GAME_LIMITS.BOARD_SIZE}, 1fr)`,
                   gap: "2px",
                   maxWidth: "150px",
                   margin: "0 auto"
                 }}>
-                  {Array.from({ length: 25 }).map((_, i) => (
+                  {Array.from({ length: GAME_LIMITS.MAX_BOARD_CELLS }).map((_, i) => (
                     <div
                       key={i}
                       style={{
                         width: "16px",
                         height: "16px",
-                        background: i === 0 || i === 24 ? "var(--green-9)" :
-                                   (i < 5 || i % 5 === 0 || i % 5 === 4 || i > 19) ? "var(--sky-9)" : "rgba(56, 189, 248, 0.3)",
+                        background: i === 0 || i === (GAME_LIMITS.MAX_BOARD_CELLS - 1) ? "var(--green-9)" :
+                                   (i < GAME_LIMITS.BOARD_SIZE || i % GAME_LIMITS.BOARD_SIZE === 0 || i % GAME_LIMITS.BOARD_SIZE === (GAME_LIMITS.BOARD_SIZE - 1) || i > (GAME_LIMITS.MAX_BOARD_CELLS - GAME_LIMITS.BOARD_SIZE - 1)) ? "var(--sky-9)" : "rgba(56, 189, 248, 0.3)",
                         borderRadius: "2px",
                       }}
                     />
@@ -285,20 +299,20 @@ export function HumpbackLaunchpadPage() {
                 }}>
                   <div style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gridTemplateColumns: `repeat(${GAME_LIMITS.BOARD_SIZE}, 1fr)`,
                     gap: "4px",
                     margin: "0 auto",
                     maxWidth: "200px"
                   }}>
-                    {Array.from({ length: 25 }).map((_, i) => (
+                    {Array.from({ length: GAME_LIMITS.MAX_BOARD_CELLS }).map((_, i) => (
                       <div
                         key={i}
                         style={{
                           width: "32px",
                           height: "32px",
                           background: i === 0 ? "var(--green-9)" :
-                                     i === 24 ? "var(--orange-9)" :
-                                     (i < 5 || i % 5 === 0 || i % 5 === 4 || i > 19) ? "var(--sky-9)" : "rgba(56, 189, 248, 0.2)",
+                                     i === (GAME_LIMITS.MAX_BOARD_CELLS - 1) ? "var(--orange-9)" :
+                                     (i < GAME_LIMITS.BOARD_SIZE || i % GAME_LIMITS.BOARD_SIZE === 0 || i % GAME_LIMITS.BOARD_SIZE === (GAME_LIMITS.BOARD_SIZE - 1) || i > (GAME_LIMITS.MAX_BOARD_CELLS - GAME_LIMITS.BOARD_SIZE - 1)) ? "var(--sky-9)" : "rgba(56, 189, 248, 0.2)",
                           borderRadius: "4px",
                           cursor: "pointer",
                           border: "1px solid rgba(56, 189, 248, 0.4)",
@@ -309,12 +323,12 @@ export function HumpbackLaunchpadPage() {
                           color: "white"
                         }}
                       >
-                        {i === 0 ? "S" : i === 24 ? "F" : ""}
+                        {i === 0 ? "S" : i === (GAME_LIMITS.MAX_BOARD_CELLS - 1) ? "F" : ""}
                       </div>
                     ))}
                   </div>
                   <Text size="2" color="gray" style={{ textAlign: "center", marginTop: "8px" }}>
-                    5×5 Board • S=Start, F=Finish
+                    {GAME_LIMITS.BOARD_SIZE}×{GAME_LIMITS.BOARD_SIZE} Board • S=Start, F=Finish
                   </Text>
                 </Box>
               ) : (
@@ -415,7 +429,7 @@ export function HumpbackLaunchpadPage() {
           </Box>
         ) : (
           <Grid columns="3" gap="5">
-            {publishedGames.data?.slice(0, 6).map((game, index) => (
+            {publishedGames?.slice(0, 6).map((game, index) => (
               <Card
                 key={game.id}
                 style={{
@@ -442,21 +456,21 @@ export function HumpbackLaunchpadPage() {
                   </Badge>
                   <Flex align="center" gap="1">
                     <PersonIcon width="12" height="12" color="var(--gray-10)" />
-                    <Text size="1" color="gray">{game.totalPlays}</Text>
+                    <Text size="1" color="gray">{game.totalGames}</Text>
                   </Flex>
                 </Flex>
 
-                <Heading size="4" style={{ color: "white" }} mb="2">{game.title}</Heading>
+                <Heading size="4" style={{ color: "white" }} mb="2">{game.name}</Heading>
                 <Text size="2" color="gray" mb="3" style={{ minHeight: "40px" }}>
                   {game.description}
                 </Text>
 
                 <Flex justify="between" align="center" mb="3">
                   <Text size="2" style={{ color: "var(--sky-9)" }}>
-                    {game.category}
+                    Board Game
                   </Text>
                   <Text size="2" color="gray">
-                    {game.joinFee} SUI
+                    {game.stakeAmount / 1000000000} SUI
                   </Text>
                 </Flex>
 
@@ -465,7 +479,7 @@ export function HumpbackLaunchpadPage() {
                   variant="outline"
                   style={{ width: "100%" }}
                   disabled={!currentAccount}
-                  onClick={() => alert(`Playing ${game.title}... (Game engine integration coming soon!)`)}
+                  onClick={() => alert(`Playing ${game.name}... (Game engine integration coming soon!)`)}
                 >
                   <PlayIcon width="14" height="14" />
                   {currentAccount ? "Play Now" : "Connect Wallet"}

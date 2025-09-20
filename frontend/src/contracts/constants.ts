@@ -1,17 +1,18 @@
 // Contract addresses and constants for Leviathan platform
 // These will be updated with actual deployed contract addresses
 
-export const CONTRACT_ADDRESSES = {
-  // Mock addresses for development - replace with actual deployed addresses
-  HERMIT_FINANCE: "0x0000000000000000000000000000000000000000000000000000000000000001",
-  GAME_LAUNCHPAD: "0x0000000000000000000000000000000000000000000000000000000000000002",
-  BOARD_GAME_MAKER: "0x0000000000000000000000000000000000000000000000000000000000000003",
-  CARD_GAME_MAKER: "0x0000000000000000000000000000000000000000000000000000000000000004",
-  MATCH_SETTLEMENT: "0x0000000000000000000000000000000000000000000000000000000000000005",
-  GAME_ENGINE: "0x0000000000000000000000000000000000000000000000000000000000000006"
-} as const;
+// Main package ID - update this when contracts are deployed
+export const PACKAGE_ID = "0xd91758ba16fba4cb322da324d857ce5b50634324312f328814ea9c417acc6df3";
 
-export const PACKAGE_ID = "0x0000000000000000000000000000000000000000000000000000000000000000";
+// Object IDs for deployed contracts - update when deployed
+export const CONTRACT_OBJECTS = {
+  // hSUI Vault object ID
+  HSUI_VAULT: "0x0000000000000000000000000000000000000000000000000000000000000001",
+  // hSUI Admin Cap object ID
+  HSUI_ADMIN_CAP: "0x0000000000000000000000000000000000000000000000000000000000000002",
+  // Game Launchpad object ID (if exists)
+  GAME_LAUNCHPAD: "0x0000000000000000000000000000000000000000000000000000000000000003"
+} as const;
 
 // Cell types from board_game_maker.move (for board game templates)
 export const BOARD_CELL_TYPES = {
@@ -60,10 +61,12 @@ export const GAME_LIMITS = {
 
 // Function names for contract calls
 export const CONTRACT_FUNCTIONS = {
-  // Hermit Finance
+  // Hermit Finance (hSUI)
   DEPOSIT_SUI: "deposit_sui",
-  WITHDRAW_HSUI: "withdraw_hsui",
-  GET_EXCHANGE_RATE: "get_exchange_rate",
+  REDEEM_HSUI: "redeem_hsui",
+  UPDATE_EXCHANGE_RATE: "update_exchange_rate",
+  UPDATE_FEE_RATE: "update_fee_rate",
+  GET_VAULT_INFO: "get_vault_info",
 
   // Board Game Maker - Board Game Template functions
   CREATE_GAME_TEMPLATE: "create_game_template",
@@ -112,54 +115,57 @@ export const DEFAULT_GAME_CONFIG = {
   title: "My Game"
 } as const;
 
-// Mock game data for development
-export const MOCK_GAMES = [
+// Mock board game templates for development
+export const MOCK_BOARD_GAME_TEMPLATES = [
   {
-    id: "game_1",
-    title: "5x5 Yut Nori",
-    description: "Traditional Korean board game with modern Web3 features",
-    creator: "0x123...",
-    category: "Board Game",
-    thumbnail: "/images/game1.png",
-    totalPlays: 42,
-    totalStaked: 1000,
+    id: "template_1",
+    name: "Classic Racing Track",
+    description: "Traditional racing game with obstacles and power-ups",
+    creator: "0x123abc...",
+    diceMin: 1,
+    diceMax: 6,
+    piecesPerPlayer: 3,
+    stakeAmount: 1000000000, // 1 SUI in mist
+    totalGames: 42,
+    totalStaked: 42000000000, // 42 SUI
     isActive: true,
-    joinFee: 100, // in mist
-    maxPlayers: 4
+    createdAt: Date.now() - 86400000 // 1 day ago
   },
   {
-    id: "game_2",
-    title: "Card Battle Arena",
-    description: "Strategic card game with NFT integration",
-    creator: "0x456...",
-    category: "Card Game",
-    thumbnail: "/images/game2.png",
-    totalPlays: 128,
-    totalStaked: 5000,
+    id: "template_2",
+    name: "Bomb Maze Challenge",
+    description: "Navigate through dangerous maze filled with bombs",
+    creator: "0x456def...",
+    diceMin: 1,
+    diceMax: 8,
+    piecesPerPlayer: 2,
+    stakeAmount: 500000000, // 0.5 SUI
+    totalGames: 28,
+    totalStaked: 14000000000, // 14 SUI
     isActive: true,
-    joinFee: 250,
-    maxPlayers: 2
+    createdAt: Date.now() - 172800000 // 2 days ago
   },
   {
-    id: "game_3",
-    title: "Token Track Race",
-    description: "Racing game with token mechanics",
-    creator: "0x789...",
-    category: "Racing",
-    thumbnail: "/images/game3.png",
-    totalPlays: 89,
-    totalStaked: 3200,
+    id: "template_3",
+    name: "Speed Runner",
+    description: "Fast-paced racing with high dice values",
+    creator: "0x789ghi...",
+    diceMin: 3,
+    diceMax: 12,
+    piecesPerPlayer: 1,
+    stakeAmount: 2000000000, // 2 SUI
+    totalGames: 15,
+    totalStaked: 30000000000, // 30 SUI
     isActive: true,
-    joinFee: 150,
-    maxPlayers: 6
+    createdAt: Date.now() - 259200000 // 3 days ago
   }
 ] as const;
 
 // Event names for listening to contract events
 export const CONTRACT_EVENTS = {
-  // Hermit Finance
-  DEPOSIT_EVENT: "DepositEvent",
-  WITHDRAW_EVENT: "WithdrawEvent",
+  // Hermit Finance (hSUI)
+  SUI_DEPOSITED: "SuiDeposited",
+  HSUI_REDEEMED: "HSuiRedeemed",
 
   // Board Game Maker
   TEMPLATE_CREATED: "TemplateCreated",
@@ -169,19 +175,9 @@ export const CONTRACT_EVENTS = {
   PIECE_DIED: "PieceDied",
   GAME_FINISHED: "GameFinished",
 
-  // Card Game Maker
-  GAME_CREATED: "GameCreated",
-  GAME_UPDATED: "GameUpdated",
-  COMPONENT_ADDED: "ComponentAdded",
-
   // Game Launchpad
   GAME_PUBLISHED: "GamePublished",
-  LAUNCH_FEE_UPDATED: "LaunchFeeUpdated",
-
-  // Game Engine
-  GAME_CREATED_ENGINE: "GameCreated",
-  ACTION_PERFORMED: "ActionPerformed",
-  GAME_ENDED: "GameEnded"
+  LAUNCH_FEE_UPDATED: "LaunchFeeUpdated"
 } as const;
 
 // Network configuration

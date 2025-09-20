@@ -2,6 +2,7 @@ import { Flex, Box, Heading, Text, Card, Button, Grid } from "@radix-ui/themes";
 import { useState } from "react";
 import { ArrowUpIcon, ArrowDownIcon } from "@radix-ui/react-icons";
 import hermitLogo from "../assets/images/Hermitlogo.png";
+import { CONTRACT_FUNCTIONS, CONTRACT_EVENTS } from '../contracts/constants';
 
 export function HermitFinancePage() {
   const [stakeAmount, setStakeAmount] = useState("");
@@ -57,29 +58,39 @@ export function HermitFinancePage() {
     if (!stakeAmount || parseFloat(stakeAmount) <= 0) return;
 
     setIsLoading(true);
-    // Simulate transaction time
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    try {
+      // 실제 컨트랙트 호출을 위한 함수명 사용 (향후 실제 구현 시 사용)
+      console.log('Function:', isUnstaking ? CONTRACT_FUNCTIONS.REDEEM_HSUI : CONTRACT_FUNCTIONS.DEPOSIT_SUI);
+      console.log('Event:', isUnstaking ? CONTRACT_EVENTS.HSUI_REDEEMED : CONTRACT_EVENTS.SUI_DEPOSITED);
+      
+      // Simulate transaction time
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Add new transaction to history
-    const newTransaction = {
-      id: transactions.length + 1,
-      type: isUnstaking ? "unstake" : "stake",
-      amount: stakeAmount,
-      received: receiveAmount,
-      date: new Date().toLocaleString(),
-      status: "completed"
-    };
-    setTransactions([newTransaction, ...transactions]);
+      // Add new transaction to history
+      const newTransaction = {
+        id: transactions.length + 1,
+        type: isUnstaking ? "unstake" : "stake",
+        amount: stakeAmount,
+        received: receiveAmount,
+        date: new Date().toLocaleString(),
+        status: "completed"
+      };
+      setTransactions([newTransaction, ...transactions]);
 
-    setIsLoading(false);
-    setShowSuccess(true);
+      setIsLoading(false);
+      setShowSuccess(true);
 
-    // Reset form after success
-    setTimeout(() => {
-      setShowSuccess(false);
-      setStakeAmount("");
-      setReceiveAmount("");
-    }, 3000);
+      // Reset form after success
+      setTimeout(() => {
+        setShowSuccess(false);
+        setStakeAmount("");
+        setReceiveAmount("");
+      }, 3000);
+    } catch (error) {
+      console.error('Transaction failed:', error);
+      setIsLoading(false);
+    }
   };
 
   return (

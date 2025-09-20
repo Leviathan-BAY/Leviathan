@@ -16,7 +16,7 @@ import {
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { BoardGameTemplateTransactions, TransactionUtils } from '../contracts/transactions';
-import { BOARD_CELL_TYPES } from '../contracts/constants';
+import { BOARD_CELL_TYPES, GAME_LIMITS } from '../contracts/constants';
 
 // Cell type constants matching the Move contract
 const CELL_TYPES = {
@@ -62,7 +62,7 @@ interface GameConfig {
   diceMax: number;
   piecesPerPlayer: number;
   stakeAmount: number;
-  board: number[]; // 100 elements for 10x10 board
+  board: number[]; // 100 elements for 10x10 board (GAME_LIMITS.BOARD_GAME_SIZE * GAME_LIMITS.BOARD_GAME_SIZE)
   startPositions: number[];
   finishPositions: number[];
 }
@@ -87,7 +87,7 @@ const BoardGameLaunchpadPage: React.FC = () => {
     diceMax: 6,
     piecesPerPlayer: 3,
     stakeAmount: 1, // SUI
-    board: new Array(100).fill(CELL_TYPES.UNSET),
+    board: new Array(GAME_LIMITS.MAX_BOARD_GAME_CELLS).fill(CELL_TYPES.UNSET),
     startPositions: [],
     finishPositions: [],
   });
@@ -140,14 +140,14 @@ const BoardGameLaunchpadPage: React.FC = () => {
   const clearBoard = useCallback(() => {
     setGameConfig(prev => ({
       ...prev,
-      board: new Array(100).fill(CELL_TYPES.UNSET),
+      board: new Array(GAME_LIMITS.MAX_BOARD_GAME_CELLS).fill(CELL_TYPES.UNSET),
       startPositions: [],
       finishPositions: [],
     }));
   }, []);
 
   const setPresetBoard = useCallback((preset: 'racing' | 'maze' | 'deathmatch') => {
-    let newBoard = new Array(100).fill(CELL_TYPES.UNSET);
+    let newBoard = new Array(GAME_LIMITS.MAX_BOARD_GAME_CELLS).fill(CELL_TYPES.UNSET);
     let startPositions: number[] = [];
     let finishPositions: number[] = [];
 
@@ -155,7 +155,7 @@ const BoardGameLaunchpadPage: React.FC = () => {
       case 'racing':
         // Simple racing track
         startPositions = [0, 1, 2];
-        finishPositions = [97, 98, 99];
+        finishPositions = [GAME_LIMITS.MAX_BOARD_GAME_CELLS - 3, GAME_LIMITS.MAX_BOARD_GAME_CELLS - 2, GAME_LIMITS.MAX_BOARD_GAME_CELLS - 1];
         // Add passable lanes
         [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 17, 18, 19, 20, 21, 22, 24, 25, 27, 28, 29, 30, 31, 32, 34, 35, 37, 38, 39, 40, 41, 42, 47, 48, 49, 50, 51, 52, 54, 55, 57, 58, 59, 60, 61, 62, 64, 65, 67, 68, 69, 70, 71, 72, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96].forEach(pos => {
           newBoard[pos] = CELL_TYPES.PASSABLE;
@@ -169,7 +169,7 @@ const BoardGameLaunchpadPage: React.FC = () => {
       case 'maze':
         // Maze-like structure
         startPositions = [0];
-        finishPositions = [99];
+        finishPositions = [GAME_LIMITS.MAX_BOARD_GAME_CELLS - 1];
         // Create passable paths
         [0, 2, 4, 6, 8, 11, 13, 15, 17, 19, 20, 22, 24, 26, 28, 31, 33, 35, 37, 39, 40, 42, 44, 46, 48, 51, 53, 55, 57, 59, 60, 62, 64, 66, 68, 71, 73, 75, 77, 79, 80, 82, 84, 86, 88, 91, 93, 95, 97, 99].forEach(pos => {
           newBoard[pos] = CELL_TYPES.PASSABLE;
@@ -183,7 +183,7 @@ const BoardGameLaunchpadPage: React.FC = () => {
       case 'deathmatch':
         // Dangerous course with bombs
         startPositions = [0];
-        finishPositions = [99];
+        finishPositions = [GAME_LIMITS.MAX_BOARD_GAME_CELLS - 1];
         // Add passable paths
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 19, 20, 21, 23, 25, 27, 29, 30, 32, 34, 36, 38, 39, 40, 41, 43, 45, 47, 49, 50, 52, 54, 56, 58, 59, 60, 61, 63, 65, 67, 69, 70, 72, 74, 76, 78, 79, 80, 81, 83, 85, 87, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99].forEach(pos => {
           newBoard[pos] = CELL_TYPES.PASSABLE;
@@ -404,7 +404,7 @@ const BoardGameLaunchpadPage: React.FC = () => {
   );
 
   const renderBoard = () => (
-    <Grid columns="10" gap="1" style={{ maxWidth: '500px', margin: '0 auto' }}>
+    <Grid columns={GAME_LIMITS.BOARD_GAME_SIZE.toString()} gap="1" style={{ maxWidth: '500px', margin: '0 auto' }}>
       {gameConfig.board.map((cellType, index) => (
         <Box
           key={index}
@@ -437,7 +437,7 @@ const BoardGameLaunchpadPage: React.FC = () => {
           🎮 Board Game Launchpad
         </Heading>
         <Text size="4" color="gray" align="center">
-          Create and deploy your custom 10x10 board game
+          Create and deploy your custom {GAME_LIMITS.BOARD_GAME_SIZE}x{GAME_LIMITS.BOARD_GAME_SIZE} board game
         </Text>
       </Box>
 
@@ -628,13 +628,13 @@ const BoardGameLaunchpadPage: React.FC = () => {
 
         {/* Board Editor */}
         <Card style={{ padding: '20px' }}>
-          <Heading size="5" mb="4">10x10 Board Editor</Heading>
+          <Heading size="5" mb="4">{GAME_LIMITS.BOARD_GAME_SIZE}x{GAME_LIMITS.BOARD_GAME_SIZE} Board Editor</Heading>
 
           {renderBoard()}
 
           <Box mt="4" style={{ textAlign: 'center' }}>
             <Text size="2" color="gray">
-              Total 100 cells -
+              Total {GAME_LIMITS.MAX_BOARD_GAME_CELLS} cells -
               Unset: {gameConfig.board.filter(cell => cell === CELL_TYPES.UNSET).length},
               Passable: {gameConfig.board.filter(cell => cell === CELL_TYPES.PASSABLE).length},
               Walls: {gameConfig.board.filter(cell => cell === CELL_TYPES.BLOCKED).length},
