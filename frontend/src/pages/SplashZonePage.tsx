@@ -1,5 +1,5 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator, Tabs, TextField, Select } from "@radix-ui/themes";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
 import { useBoardGameTemplates, useGameRegistry } from "../contracts/hooks";
 import { GAME_LIMITS } from "../contracts/constants";
 import { useDiscord } from "../hooks/useDiscord";
@@ -9,12 +9,66 @@ import { boardGameInstanceManager } from "../utils/boardGameInstanceManager";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PlayIcon, PlusIcon, MagnifyingGlassIcon, StackIcon } from "@radix-ui/react-icons";
+import { REGISTRY_ID } from "../contracts/constants";
 
 export function SplashZonePage() {
   const currentAccount = useCurrentAccount();
   const navigate = useNavigate();
   const { data: publishedGames, isLoading } = useBoardGameTemplates();
   const { isAuthenticated: isDiscordConnected, getDisplayName, getAvatarUrl } = useDiscord();
+  const client = useSuiClient();
+  const [registryGames, setRegistryGames] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchRegistryGames() {
+      try {
+        // 1️⃣ GameRegistry 읽기
+        const registry = await client.getObject({
+          id: REGISTRY_ID,
+          options: { showContent: true },
+        });
+
+        const fields = (registry.data?.content as any).fields;
+        const publishedIds: string[] = fields.published_games;
+
+        console.log("Published IDs:", publishedIds);
+
+        // 2️⃣ PublishedGame 오브젝트들 읽기
+        const results = await Promise.all(
+          publishedIds.map(async (id) => {
+            const obj0 = await client.getObject({
+              id,
+              options: { showContent: true },
+            });
+            const field0 = (obj0.data?.content as any).fields
+            const id0 = field0.package_id;
+            const obj = await client.getObject({
+              id : id0,
+              options: { showContent: true },
+            });
+            const pgFields = (obj.data?.content as any).fields;
+            return {
+              id,
+              name: pgFields.name,
+              description: pgFields.description,
+              type: "board",
+              gameType: field0.game_type === 1 ? "Board Game" : "Card Game",
+              packageId: id0,
+              stakeAmount: Number(pgFields.stack_amount),
+              creator: pgFields.creator,
+              createdAt: Number(pgFields.created_at),
+            };
+          })
+        );
+
+        setRegistryGames(results);
+      } catch (err) {
+        console.error("Failed to fetch registry games:", err);
+      }
+    }
+
+    fetchRegistryGames();
+  }, [client]);
 
   // Game registry hooks
   const {
@@ -228,32 +282,6 @@ export function SplashZonePage() {
     let allGames: any[] = [];
 
     // Add registered board games from the registry
-    if (filterType === "all" || filterType === "board") {
-      const registryBoardGames = (registeredGames.data || []).map(game => ({
-        id: game.template_id,
-        name: game.name,
-        description: game.description,
-        type: "board",
-        gameType: "Board Game",
-        stakeAmount: game.stake_amount,
-        totalGames: game.total_games_played,
-        piecesPerPlayer: game.pieces_per_player,
-        diceMin: game.dice_min,
-        diceMax: game.dice_max,
-        creator: game.creator,
-        isActive: game.is_active
-      }));
-      allGames = [...allGames, ...registryBoardGames];
-
-      // Also add legacy board games for backward compatibility
-      const legacyBoardGames = (publishedGames || []).map(game => ({
-        ...game,
-        type: "board",
-        gameType: "Board Game (Legacy)"
-      }));
-      allGames = [...allGames, ...legacyBoardGames];
-    }
-
     // Add card game templates
     if (filterType === "all" || filterType === "card") {
       const cardGames = cardGameTemplates.map(template => ({
@@ -276,6 +304,8 @@ export function SplashZonePage() {
         game.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
+
+    allGames = [...registryGames, ...allGames];
 
     return allGames;
   };
@@ -796,7 +826,7 @@ export function SplashZonePage() {
 
               {/* Board Game Instances (Legacy) */}
               {boardGameInstances.map((instance) => (
-                <Card key={`board-${instance.id}`} style={cardStyle}>
+                <Card key={`board-${instance.templateId}-${instance.id}`} style={cardStyle}>
                   <Box
                     style={{
                       width: "100%",

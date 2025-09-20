@@ -16,7 +16,7 @@ import {
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import { useSuiClient } from '@mysten/dapp-kit';
-import { BoardGameTemplateTransactions, TransactionUtils } from '../contracts/transactions';
+import { BoardGameTemplateTransactions, TransactionUtils, GameRegistryTransaction } from '../contracts/transactions';
 import { BOARD_CELL_TYPES, GAME_LIMITS } from '../contracts/constants';
 
 // Cell type constants matching the Move contract
@@ -287,6 +287,25 @@ const BoardGameLaunchpadPage: React.FC = () => {
 
       setDeployedGameId(templateId);
       alert(`Game template deployed successfully!\nTemplate ID: ${templateId}`);
+
+      // 🆕 Publish to registry
+      const publishTx = GameRegistryTransaction.publishGame(
+        templateId,
+        1, // board game
+      );
+
+      await new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: publishTx },
+          {
+            onSuccess: (result) => {
+              console.log("Game published to registry:", result);
+              resolve(result);
+            },
+            onError: (error) => reject(error),
+          }
+        );
+      });
 
     } catch (error) {
       console.error('Deployment failed:', error);

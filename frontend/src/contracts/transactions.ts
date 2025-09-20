@@ -1,6 +1,6 @@
 // Transaction utilities for Leviathan platform contracts
 import { Transaction } from "@mysten/sui/transactions";
-import { CONTRACT_FUNCTIONS, PACKAGE_ID } from "./constants";
+import { CONTRACT_FUNCTIONS, PACKAGE_ID, REGISTRY_ID } from "./constants";
 
 // Hermit Finance (hSUI) Transactions
 export class HermitFinanceTransactions {
@@ -432,6 +432,20 @@ export class CardPokerGameTransactions {
     return tx;
   }
 }
+export const GameRegistryTransaction = {
+  publishGame: (templateId: string, isBoardGame: number) => {
+    const tx = new Transaction();
+    tx.moveCall({
+      target: `${PACKAGE_ID}::game_registry::publish_game`,
+      arguments: [
+        tx.object(REGISTRY_ID),           // 글로벌 레지스트리 object
+        tx.pure.u8(isBoardGame),       // 게임 타입 (board/card)
+        tx.object(templateId),           // 방금 생성된 GameTemplate object
+      ],
+    });
+    return tx;
+  },
+};
 
 // Utility functions
 export const TransactionUtils = {
