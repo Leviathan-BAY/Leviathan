@@ -2,7 +2,7 @@ import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Separator } from "
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { PlusIcon, Pencil2Icon, PlayIcon, PersonIcon, StackIcon } from "@radix-ui/react-icons";
 import humpbackLogo from "../assets/images/Humpbacklogo.png";
-import { useBoardGameTemplate, useBoardGameTemplates } from "../contracts/hooks";
+import { useBoardGameTemplate, useBoardGameTemplates, useGameRegistry } from "../contracts/hooks";
 import { GAME_LIMITS } from "../contracts/constants";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ export function HumpbackLaunchpadPage() {
   const currentAccount = useCurrentAccount();
   const { data: publishedGames, isLoading: templatesLoading } = useBoardGameTemplates();
   const { createTemplate, isLoading: createLoading } = useBoardGameTemplate();
+  const { registerGameTemplate, registeredGames } = useGameRegistry();
   
   // Mock game stats for now
   const gameStats = { 

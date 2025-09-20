@@ -6,6 +6,7 @@ import { MOCK_BOARD_GAME_TEMPLATES } from "./constants";
 import {
   HermitFinanceTransactions,
   BoardGameTemplateTransactions,
+  GameRegistryTransactions,
   TransactionUtils
 } from "./transactions";
 
@@ -410,5 +411,256 @@ export const useContractTransaction = () => {
   return {
     executeTransaction,
     isLoading: isPending
+  };
+};
+
+// Game Registry Hooks
+export const useGameRegistry = () => {
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+  const queryClient = useQueryClient();
+  const client = useSuiClient();
+
+  // TODO: Replace with actual registry object ID from deployment
+  const REGISTRY_ID = "0x1234567890abcdef1234567890abcdef12345678";
+
+  const registerGameTemplate = useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+      registrationFee?: number; // Default to 1 SUI
+    }) => {
+      const fee = data.registrationFee || 1;
+      const tx = GameRegistryTransactions.registerGameTemplate(
+        REGISTRY_ID,
+        data.templateId,
+        TransactionUtils.suiToMist(fee)
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Template registration successful:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Template registration failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['registered-games'] });
+    }
+  });
+
+  const createGameInstance = useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+      maxPlayers: number;
+      stakeAmount: number;
+    }) => {
+      const tx = GameRegistryTransactions.createGameInstance(
+        REGISTRY_ID,
+        data.templateId,
+        data.maxPlayers,
+        TransactionUtils.suiToMist(data.stakeAmount)
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Game instance creation successful:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Game instance creation failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['waiting-instances'] });
+    }
+  });
+
+  const joinGameInstance = useMutation({
+    mutationFn: async (data: {
+      instanceId: string;
+      stakeAmount: number;
+    }) => {
+      const tx = GameRegistryTransactions.joinGameInstance(
+        REGISTRY_ID,
+        data.instanceId,
+        TransactionUtils.suiToMist(data.stakeAmount)
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Game instance join successful:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Game instance join failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['waiting-instances'] });
+    }
+  });
+
+  const updateGameStatistics = useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+      totalStakes: number;
+      winner: string;
+    }) => {
+      const tx = GameRegistryTransactions.updateGameStatistics(
+        REGISTRY_ID,
+        data.templateId,
+        TransactionUtils.suiToMist(data.totalStakes),
+        data.winner
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Game statistics update successful:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Game statistics update failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['registered-games'] });
+    }
+  });
+
+  // Query all registered games
+  const registeredGames = useQuery({
+    queryKey: ['registered-games'],
+    queryFn: async () => {
+      try {
+        // TODO: Query actual registered games from the contract
+        // For now, return mock data
+        return MOCK_BOARD_GAME_TEMPLATES.map(template => ({
+          template_id: template.id,
+          template_package_id: template.id,
+          creator: "0x1234567890abcdef1234567890abcdef12345678",
+          name: template.name,
+          description: template.description,
+          stake_amount: template.stakeAmount,
+          pieces_per_player: template.piecesPerPlayer,
+          dice_min: template.diceMin,
+          dice_max: template.diceMax,
+          registered_at: Date.now() - Math.random() * 86400000,
+          total_instances_created: Math.floor(Math.random() * 50),
+          total_games_played: Math.floor(Math.random() * 200),
+          total_stakes_wagered: Math.floor(Math.random() * 10000),
+          is_active: true
+        }));
+      } catch (error) {
+        console.error("Failed to fetch registered games:", error);
+        return [];
+      }
+    },
+    refetchInterval: 15000 // Refetch every 15 seconds
+  });
+
+  // Query waiting game instances
+  const waitingInstances = useQuery({
+    queryKey: ['waiting-instances'],
+    queryFn: async () => {
+      try {
+        // TODO: Query actual waiting instances from the contract
+        // For now, return mock data
+        return [
+          {
+            instance_id: "0xinstance1",
+            template_id: "template_1",
+            creator: "0x1234567890abcdef1234567890abcdef12345678",
+            max_players: 2,
+            current_players: 1,
+            stake_amount: 1000000000, // 1 SUI in mist
+            created_at: Date.now() - 300000, // 5 minutes ago
+            is_joinable: true
+          },
+          {
+            instance_id: "0xinstance2",
+            template_id: "template_2",
+            creator: "0xabcdef1234567890abcdef1234567890abcdef12",
+            max_players: 4,
+            current_players: 2,
+            stake_amount: 500000000, // 0.5 SUI in mist
+            created_at: Date.now() - 600000, // 10 minutes ago
+            is_joinable: true
+          }
+        ];
+      } catch (error) {
+        console.error("Failed to fetch waiting instances:", error);
+        return [];
+      }
+    },
+    refetchInterval: 5000 // Refetch every 5 seconds for real-time updates
+  });
+
+  // Query registry statistics
+  const registryStats = useQuery({
+    queryKey: ['registry-stats'],
+    queryFn: async () => {
+      try {
+        // TODO: Query actual registry stats from the contract
+        return {
+          totalGames: 42,
+          activeInstances: 7,
+          totalFeesCollected: 50 // in SUI
+        };
+      } catch (error) {
+        console.error("Failed to fetch registry stats:", error);
+        return {
+          totalGames: 0,
+          activeInstances: 0,
+          totalFeesCollected: 0
+        };
+      }
+    },
+    refetchInterval: 30000 // Refetch every 30 seconds
+  });
+
+  return {
+    registerGameTemplate,
+    createGameInstance,
+    joinGameInstance,
+    updateGameStatistics,
+    registeredGames,
+    waitingInstances,
+    registryStats,
+    isLoading: registerGameTemplate.isPending ||
+              createGameInstance.isPending ||
+              joinGameInstance.isPending ||
+              updateGameStatistics.isPending ||
+              registeredGames.isLoading ||
+              waitingInstances.isLoading ||
+              registryStats.isLoading
   };
 };

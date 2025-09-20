@@ -221,6 +221,112 @@ export class GameLaunchpadTransactions {
   }
 }
 
+// Game Registry Transactions (from game_registry.move)
+export class GameRegistryTransactions {
+  static registerGameTemplate(
+    registryId: string,
+    templateId: string,
+    registrationFee: bigint
+  ): Transaction {
+    const tx = new Transaction();
+
+    const [feeCoin] = tx.splitCoins(tx.gas, [registrationFee]);
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::game_registry::register_game_template`,
+      arguments: [
+        tx.object(registryId),
+        tx.object(templateId),
+        feeCoin
+      ]
+    });
+
+    return tx;
+  }
+
+  static createGameInstance(
+    registryId: string,
+    templateId: string,
+    maxPlayers: number,
+    stakeAmount: bigint
+  ): Transaction {
+    const tx = new Transaction();
+
+    const [stakeCoin] = tx.splitCoins(tx.gas, [stakeAmount]);
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::game_registry::create_game_instance`,
+      arguments: [
+        tx.object(registryId),
+        tx.pure.id(templateId),
+        tx.pure.u8(maxPlayers),
+        stakeCoin
+      ]
+    });
+
+    return tx;
+  }
+
+  static joinGameInstance(
+    registryId: string,
+    instanceId: string,
+    stakeAmount: bigint
+  ): Transaction {
+    const tx = new Transaction();
+
+    const [stakeCoin] = tx.splitCoins(tx.gas, [stakeAmount]);
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::game_registry::join_game_instance`,
+      arguments: [
+        tx.object(registryId),
+        tx.pure.id(instanceId),
+        stakeCoin
+      ]
+    });
+
+    return tx;
+  }
+
+  static removeWaitingInstance(
+    registryId: string,
+    instanceId: string
+  ): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::game_registry::remove_waiting_instance`,
+      arguments: [
+        tx.object(registryId),
+        tx.pure.id(instanceId)
+      ]
+    });
+
+    return tx;
+  }
+
+  static updateGameStatistics(
+    registryId: string,
+    templateId: string,
+    totalStakes: bigint,
+    winner: string
+  ): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::game_registry::update_game_statistics`,
+      arguments: [
+        tx.object(registryId),
+        tx.pure.id(templateId),
+        tx.pure.u64(totalStakes),
+        tx.pure.address(winner)
+      ]
+    });
+
+    return tx;
+  }
+}
+
 // Utility functions
 export const TransactionUtils = {
   // Convert string to bytes for Move calls

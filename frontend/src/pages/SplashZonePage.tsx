@@ -1,6 +1,6 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator, Tabs, TextField, Select } from "@radix-ui/themes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
-import { useBoardGameTemplates } from "../contracts/hooks";
+import { useBoardGameTemplates, useGameRegistry } from "../contracts/hooks";
 import { GAME_LIMITS } from "../contracts/constants";
 import { useDiscord } from "../hooks/useDiscord";
 import { MatchmakingModal } from "../components/MatchmakingModal";
@@ -15,6 +15,15 @@ export function SplashZonePage() {
   const navigate = useNavigate();
   const { data: publishedGames, isLoading } = useBoardGameTemplates();
   const { isAuthenticated: isDiscordConnected, getDisplayName, getAvatarUrl } = useDiscord();
+
+  // Game registry hooks
+  const {
+    registeredGames,
+    waitingInstances,
+    createGameInstance,
+    joinGameInstance,
+    registryStats
+  } = useGameRegistry();
   const [matchmakingOpen, setMatchmakingOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<{id: string, title: string, maxPlayers: number} | null>(null);
 
@@ -40,13 +49,13 @@ export function SplashZonePage() {
     setBoardGameInstances(boardInstances);
   }, []);
 
-  // Combined game stats
+  // Combined game stats including registry data
   const gameStats = {
     data: {
-      totalGames: (publishedGames?.length || 0) + cardGameTemplates.length,
-      totalPlays: (publishedGames?.reduce((sum, game) => sum + (game.totalGames || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalGames, 0),
-      totalValueStaked: (publishedGames?.reduce((sum, game) => sum + (game.totalStaked || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalStaked, 0),
-      activeGames: (publishedGames?.filter(game => game.isActive).length || 0) + cardGameInstances.length + boardGameInstances.length
+      totalGames: (registeredGames.data?.length || 0) + (publishedGames?.length || 0) + cardGameTemplates.length,
+      totalPlays: (registeredGames.data?.reduce((sum, game) => sum + game.total_games_played, 0) || 0) + (publishedGames?.reduce((sum, game) => sum + (game.totalGames || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalGames, 0),
+      totalValueStaked: (registeredGames.data?.reduce((sum, game) => sum + game.total_stakes_wagered, 0) || 0) + (publishedGames?.reduce((sum, game) => sum + (game.totalStaked || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalStaked, 0),
+      activeGames: (waitingInstances.data?.length || 0) + (publishedGames?.filter(game => game.isActive).length || 0) + cardGameInstances.length + boardGameInstances.length
     }
   };
 
@@ -64,52 +73,83 @@ export function SplashZonePage() {
     transition: "all 0.3s ease",
   };
 
-  const handlePlayBoardGame = (templateId: string) => {
+  const handlePlayBoardGame = async (templateId: string) => {
     if (!currentAccount) {
       alert("Please connect your Sui wallet first to play games!");
       return;
     }
+    /*
     if (!isDiscordConnected) {
       alert("Please connect your Discord account to play with other players!");
       return;
-    }
+    }*/
 
-    // Create new board game instance
-    const instance = boardGameInstanceManager.createInstance(
-      templateId,
-      currentAccount.address,
-      getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
-    );
+    try {
+      // Find the template to get stake amount
+      const template = registeredGames.data?.find(game => game.template_id === templateId);
+      const stakeAmount = template ? template.stake_amount / 1000000000 : 1; // Convert from mist to SUI
 
-    if (instance) {
-      // TODO: Execute blockchain transaction to start game
-      // Simulate payment confirmation for now
-      boardGameInstanceManager.confirmPayment(instance.id, currentAccount.address);
-      navigate(`/board-game-lobby/${instance.id}`);
-    } else {
-      alert("Failed to create game instance");
+      // Create game instance on-chain
+      const result = await createGameInstance.mutateAsync({
+        templateId,
+        maxPlayers: 2, // Default to 2 players for board games
+        stakeAmount
+      });
+
+      // Create local instance for navigation
+      const instance = boardGameInstanceManager.createInstance(
+        templateId,
+        currentAccount.address,
+        getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
+      );
+
+      if (instance) {
+        // Simulate payment confirmation for local state
+        boardGameInstanceManager.confirmPayment(instance.id, currentAccount.address);
+        navigate(`/board-game-lobby/${instance.id}`);
+      } else {
+        alert("Failed to create local game instance");
+      }
+    } catch (error) {
+      console.error("Failed to create game instance:", error);
+      alert("Failed to create game instance. Please try again.");
     }
   };
 
-  const handleJoinBoardInstance = (instanceId: string) => {
+  const handleJoinBoardInstance = async (instanceId: string) => {
     if (!currentAccount) {
       alert("Please connect your Sui wallet first to play games!");
       return;
     }
 
-    const joinResult = boardGameInstanceManager.joinInstance(
-      instanceId,
-      currentAccount.address,
-      getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
-    );
+    try {
+      // Find the waiting instance to get stake amount
+      const waitingInstance = waitingInstances.data?.find(instance => instance.instance_id === instanceId);
+      const stakeAmount = waitingInstance ? waitingInstance.stake_amount / 1000000000 : 1; // Convert from mist to SUI
 
-    if (joinResult.success) {
-      // TODO: Execute blockchain transaction
-      // Simulate payment confirmation
-      boardGameInstanceManager.confirmPayment(instanceId, currentAccount.address);
-      navigate(`/board-game-lobby/${instanceId}`);
-    } else {
-      alert(joinResult.error);
+      // Join game instance on-chain
+      const result = await joinGameInstance.mutateAsync({
+        instanceId,
+        stakeAmount
+      });
+
+      // Join local instance for navigation
+      const joinResult = boardGameInstanceManager.joinInstance(
+        instanceId,
+        currentAccount.address,
+        getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
+      );
+
+      if (joinResult.success) {
+        // Simulate payment confirmation for local state
+        boardGameInstanceManager.confirmPayment(instanceId, currentAccount.address);
+        navigate(`/board-game-lobby/${instanceId}`);
+      } else {
+        alert(joinResult.error);
+      }
+    } catch (error) {
+      console.error("Failed to join game instance:", error);
+      alert("Failed to join game instance. Please try again.");
     }
   };
 
@@ -187,14 +227,31 @@ export function SplashZonePage() {
   const getFilteredGames = () => {
     let allGames: any[] = [];
 
-    // Add board games
+    // Add registered board games from the registry
     if (filterType === "all" || filterType === "board") {
-      const boardGames = (publishedGames || []).map(game => ({
+      const registryBoardGames = (registeredGames.data || []).map(game => ({
+        id: game.template_id,
+        name: game.name,
+        description: game.description,
+        type: "board",
+        gameType: "Board Game",
+        stakeAmount: game.stake_amount,
+        totalGames: game.total_games_played,
+        piecesPerPlayer: game.pieces_per_player,
+        diceMin: game.dice_min,
+        diceMax: game.dice_max,
+        creator: game.creator,
+        isActive: game.is_active
+      }));
+      allGames = [...allGames, ...registryBoardGames];
+
+      // Also add legacy board games for backward compatibility
+      const legacyBoardGames = (publishedGames || []).map(game => ({
         ...game,
         type: "board",
-        gameType: "Board Game"
+        gameType: "Board Game (Legacy)"
       }));
-      allGames = [...allGames, ...boardGames];
+      allGames = [...allGames, ...legacyBoardGames];
     }
 
     // Add card game templates
@@ -669,7 +726,75 @@ export function SplashZonePage() {
                 </Card>
               ))}
 
-              {/* Board Game Instances */}
+              {/* Registry Waiting Instances */}
+              {(waitingInstances.data || []).map((instance) => {
+                const template = registeredGames.data?.find(game => game.template_id === instance.template_id);
+                return (
+                  <Card key={`registry-${instance.instance_id}`} style={cardStyle}>
+                    <Box
+                      style={{
+                        width: "100%",
+                        height: "120px",
+                        background: "linear-gradient(135deg, var(--blue-9), var(--sky-9))",
+                        borderRadius: "12px",
+                        marginBottom: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        position: "relative"
+                      }}
+                    >
+                      <Text size="8" style={{ fontSize: "48px", color: "white" }}>🎲</Text>
+                      <Badge
+                        size="1"
+                        style={{
+                          position: "absolute",
+                          top: "8px",
+                          right: "8px",
+                          background: "rgba(59, 130, 246, 0.9)"
+                        }}
+                      >
+                        On-Chain Game
+                      </Badge>
+                    </Box>
+
+                    <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
+                      {template?.name || "Unknown Game"}
+                    </Heading>
+
+                    <Text size="3" color="gray" style={{ marginBottom: "12px", minHeight: "40px" }}>
+                      Stake: {(instance.stake_amount / 1000000000).toFixed(2)} SUI
+                    </Text>
+
+                    <Flex justify="between" align="center" style={{ marginBottom: "16px" }}>
+                      <Text size="2" color="gray">
+                        Players: {instance.current_players}/{instance.max_players}
+                      </Text>
+                      <Text size="2" style={{ color: "var(--blue-11)" }}>
+                        {new Date(instance.created_at).toLocaleTimeString()}
+                      </Text>
+                    </Flex>
+
+                    <Button
+                      size="3"
+                      disabled={!currentAccount || !instance.is_joinable || instance.current_players >= instance.max_players}
+                      style={{
+                        width: "100%",
+                        background: currentAccount && instance.is_joinable && instance.current_players < instance.max_players ? "var(--blue-9)" : "var(--gray-6)",
+                        color: "white",
+                      }}
+                      onClick={() => handleJoinBoardInstance(instance.instance_id)}
+                    >
+                      <PlayIcon />
+                      {!currentAccount ? "Connect Wallet" :
+                       !instance.is_joinable ? "Not Joinable" :
+                       instance.current_players >= instance.max_players ? "Game Full" : "Join Game"}
+                    </Button>
+                  </Card>
+                );
+              })}
+
+              {/* Board Game Instances (Legacy) */}
               {boardGameInstances.map((instance) => (
                 <Card key={`board-${instance.id}`} style={cardStyle}>
                   <Box
