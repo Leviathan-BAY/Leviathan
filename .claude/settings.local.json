@@ -3,13 +3,21 @@
     "allow": [
       "Bash(cargo install:*)",
       "Bash(pnpm install:*)",
-      "Bash(pnpm run dev:*)"
+      "Bash(pnpm run dev:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(sui client:*)",
+      "Bash(sh)",
+      "Bash(winget install:*)",
+      "Bash(curl:*)",
+      "Bash(sui:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "task-master-ai"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

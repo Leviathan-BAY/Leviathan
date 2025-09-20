@@ -2,42 +2,48 @@ import { Flex, Box, Heading, Text, Card, Button, Grid } from "@radix-ui/themes";
 import { useState } from "react";
 import { ArrowUpIcon, ArrowDownIcon } from "@radix-ui/react-icons";
 import hermitLogo from "../assets/images/Hermitlogo.png";
-import { CONTRACT_FUNCTIONS, CONTRACT_EVENTS } from '../contracts/constants';
+import { useHSui } from "../hooks/useHSui";
 
 export function HermitFinancePage() {
   const [stakeAmount, setStakeAmount] = useState("");
   const [receiveAmount, setReceiveAmount] = useState("");
   const [isUnstaking, setIsUnstaking] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [transactions, setTransactions] = useState([
-    {
-      id: 1,
-      type: "stake",
-      amount: "10.5",
-      received: "10.495",
-      date: "2024-01-15 14:30",
-      status: "completed"
-    },
-    {
-      id: 2,
-      type: "stake",
-      amount: "25.0",
-      received: "24.975",
-      date: "2024-01-14 09:15",
-      status: "completed"
-    }
-  ]);
+
+  // Use the hSUI hook for real blockchain integration
+  const {
+    suiBalance,
+    hsuiBalance,
+    vaultInfo,
+    transactionHistory,
+    isLoading,
+    error,
+    stakeSui,
+    unstakeHSui,
+    calculateStakeOutput,
+    calculateUnstakeOutput,
+    clearError,
+    isConnected
+  } = useHSui();
 
   const fromToken = isUnstaking ? "hSUI" : "SUI";
   const toToken = isUnstaking ? "SUI" : "hSUI";
-  const exchangeRate = isUnstaking ? 1.001 : 0.999;
 
-  const handleAmountChange = (value: string) => {
+  const handleAmountChange = async (value: string) => {
     setStakeAmount(value);
-    if (value) {
-      const calculated = (parseFloat(value) * exchangeRate).toFixed(6);
-      setReceiveAmount(calculated);
+    if (value && parseFloat(value) > 0) {
+      try {
+        if (isUnstaking) {
+          const result = await calculateUnstakeOutput(parseFloat(value));
+          setReceiveAmount(result.suiAmount.toFixed(6));
+        } else {
+          const result = await calculateStakeOutput(parseFloat(value));
+          setReceiveAmount(result.toFixed(6));
+        }
+      } catch (error) {
+        console.error('Error calculating output:', error);
+        setReceiveAmount("");
+      }
     } else {
       setReceiveAmount("");
     }
@@ -50,46 +56,42 @@ export function HermitFinancePage() {
   };
 
   const handleMaxClick = () => {
-    const maxBalance = isUnstaking ? "12.5" : "53.614"; // Mock balances
+    const maxBalance = isUnstaking ? hsuiBalance.toString() : suiBalance.toString();
     handleAmountChange(maxBalance);
   };
 
   const handleStakeClick = async () => {
     if (!stakeAmount || parseFloat(stakeAmount) <= 0) return;
+    if (!isConnected) {
+      alert('Please connect your wallet first');
+      return;
+    }
 
-    setIsLoading(true);
-    
+    // Clear any previous errors
+    clearError();
+
     try {
-      // 실제 컨트랙트 호출을 위한 함수명 사용 (향후 실제 구현 시 사용)
-      console.log('Function:', isUnstaking ? CONTRACT_FUNCTIONS.REDEEM_HSUI : CONTRACT_FUNCTIONS.DEPOSIT_SUI);
-      console.log('Event:', isUnstaking ? CONTRACT_EVENTS.HSUI_REDEEMED : CONTRACT_EVENTS.SUI_DEPOSITED);
-      
-      // Simulate transaction time
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const amount = parseFloat(stakeAmount);
+      let success = false;
 
-      // Add new transaction to history
-      const newTransaction = {
-        id: transactions.length + 1,
-        type: isUnstaking ? "unstake" : "stake",
-        amount: stakeAmount,
-        received: receiveAmount,
-        date: new Date().toLocaleString(),
-        status: "completed"
-      };
-      setTransactions([newTransaction, ...transactions]);
+      if (isUnstaking) {
+        success = await unstakeHSui(amount);
+      } else {
+        success = await stakeSui(amount);
+      }
 
-      setIsLoading(false);
-      setShowSuccess(true);
-
-      // Reset form after success
-      setTimeout(() => {
-        setShowSuccess(false);
+      if (success) {
+        setShowSuccess(true);
         setStakeAmount("");
         setReceiveAmount("");
-      }, 3000);
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setShowSuccess(false);
+        }, 3000);
+      }
     } catch (error) {
       console.error('Transaction failed:', error);
-      setIsLoading(false);
     }
   };
 
@@ -232,7 +234,7 @@ export function HermitFinancePage() {
               </Text>
               <Flex align="center" gap="2">
                 <Text size="2" className="text-secondary">
-                  Balance: {isUnstaking ? "12.5" : "53.614"}
+                  Balance: {isUnstaking ? hsuiBalance.toFixed(3) : suiBalance.toFixed(3)}
                 </Text>
                 <Button
                   size="1"
@@ -319,7 +321,7 @@ export function HermitFinancePage() {
                 ${receiveAmount ? (parseFloat(receiveAmount) * 2.45).toFixed(2) : "0.00"}
               </Text>
               <Text size="2" className="text-secondary">
-                Balance: {isUnstaking ? "53.614" : "0"}
+                Balance: {isUnstaking ? suiBalance.toFixed(3) : hsuiBalance.toFixed(3)}
               </Text>
             </Flex>
           </Card>
@@ -352,6 +354,73 @@ export function HermitFinancePage() {
           </Card>
         )}
 
+        {/* Network Warning */}
+        {isConnected && suiBalance === 0 && (
+          <Card style={{
+            background: "rgba(251, 191, 36, 0.1)",
+            border: "1px solid rgba(251, 191, 36, 0.3)",
+            borderRadius: "8px",
+            padding: "12px",
+            marginBottom: "16px",
+            textAlign: "center"
+          }}>
+            <Text size="3" style={{ color: "rgb(251, 191, 36)", fontWeight: 600 }}>
+              ⚠️ Network Notice
+            </Text>
+            <Text size="2" className="text-primary" style={{ display: "block", marginTop: "4px" }}>
+              Make sure your wallet is connected to <strong>Sui Testnet</strong> and you have SUI tokens.
+              Get testnet SUI from the faucet if needed.
+            </Text>
+          </Card>
+        )}
+
+
+        {/* Contract Deployment Warning */}
+        {isConnected && suiBalance > 0 && !vaultInfo && (
+          <Card style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "8px",
+            padding: "12px",
+            marginBottom: "16px",
+            textAlign: "center"
+          }}>
+            <Text size="3" style={{ color: "rgb(239, 68, 68)", fontWeight: 600 }}>
+              ⚠️ Contract Not Deployed
+            </Text>
+            <Text size="2" className="text-primary" style={{ display: "block", marginTop: "4px" }}>
+              The hSUI vault contract is not deployed on testnet yet. Please deploy the contracts first.
+            </Text>
+          </Card>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <Card style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "8px",
+            padding: "12px",
+            marginBottom: "16px",
+            textAlign: "center"
+          }}>
+            <Text size="3" style={{ color: "rgb(239, 68, 68)", fontWeight: 600 }}>
+              ⚠️ Transaction Failed
+            </Text>
+            <Text size="2" className="text-primary" style={{ display: "block", marginTop: "4px" }}>
+              {error}
+            </Text>
+            <Button
+              size="1"
+              variant="ghost"
+              onClick={clearError}
+              style={{ marginTop: "8px", color: "rgb(239, 68, 68)" }}
+            >
+              Dismiss
+            </Button>
+          </Card>
+        )}
+
         {/* Success Message */}
         {showSuccess && (
           <Card style={{
@@ -378,21 +447,32 @@ export function HermitFinancePage() {
         <Button
           size="4"
           onClick={handleStakeClick}
-          disabled={isLoading || !stakeAmount || parseFloat(stakeAmount) <= 0}
+          disabled={!isConnected || isLoading || !stakeAmount || parseFloat(stakeAmount) <= 0 || !vaultInfo}
           style={{
             width: "100%",
-            background: isLoading ? "var(--leviathan-text-secondary)" : "var(--leviathan-sky-blue)",
+            background: !isConnected || !vaultInfo
+              ? "var(--leviathan-text-secondary)"
+              : isLoading
+                ? "var(--leviathan-text-secondary)"
+                : "var(--leviathan-sky-blue)",
             color: "white",
             borderRadius: "12px",
             fontWeight: 600,
             fontSize: "16px",
             padding: "16px",
             border: "none",
-            cursor: isLoading ? "not-allowed" : "pointer",
+            cursor: (!isConnected || isLoading || !vaultInfo) ? "not-allowed" : "pointer",
             transition: "all var(--transition-normal)"
           }}
         >
-          {isLoading ? "Processing Transaction..." : (isUnstaking ? "Unstake Now" : "Stake Now")}
+          {!isConnected
+            ? "Connect Wallet to Continue"
+            : !vaultInfo
+              ? "Contract Not Available"
+              : isLoading
+                ? "Processing Transaction..."
+                : (isUnstaking ? "Unstake Now" : "Stake Now")
+          }
         </Button>
       </Card>
 
@@ -412,10 +492,10 @@ export function HermitFinancePage() {
             Total SUI Staked
           </Text>
           <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
-            73,542 SUI
+            {vaultInfo ? vaultInfo.totalDeposits.toLocaleString() : "0"} SUI
           </Heading>
           <Text size="1" className="text-gradient">
-            +156 SUI today
+            {vaultInfo ? `${vaultInfo.suiBalance.toFixed(0)} SUI in vault` : "Loading..."}
           </Text>
         </Card>
 
@@ -433,7 +513,7 @@ export function HermitFinancePage() {
             hSUI in Circulation
           </Text>
           <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
-            73,542 hSUI
+            {vaultInfo ? vaultInfo.hsuiSupply.toLocaleString() : "0"} hSUI
           </Heading>
           <Text size="1" className="text-gradient">
             1:1 backed by SUI
@@ -475,10 +555,10 @@ export function HermitFinancePage() {
             Exchange Rate
           </Text>
           <Heading size="6" className="text-primary" style={{ marginBottom: "4px" }}>
-            1.001 SUI
+            {vaultInfo ? vaultInfo.exchangeRate.toFixed(3) : "1.000"} SUI
           </Heading>
           <Text size="1" className="text-gradient">
-            1 hSUI = 1.001 SUI
+            1 hSUI = {vaultInfo ? vaultInfo.exchangeRate.toFixed(3) : "1.000"} SUI
           </Text>
         </Card>
       </Grid>
@@ -586,13 +666,17 @@ export function HermitFinancePage() {
         <Heading size="6" className="text-primary" style={{ marginBottom: "24px" }}>
           Recent Transactions
         </Heading>
-        {transactions.length === 0 ? (
+        {!isConnected ? (
+          <Text className="text-secondary" style={{ textAlign: "center", padding: "32px" }}>
+            Connect your wallet to view transaction history
+          </Text>
+        ) : transactionHistory.length === 0 ? (
           <Text className="text-secondary" style={{ textAlign: "center", padding: "32px" }}>
             No transactions yet. Start by staking some SUI!
           </Text>
         ) : (
           <Box>
-            {transactions.slice(0, 5).map((tx) => (
+            {transactionHistory.slice(0, 5).map((tx) => (
               <Card
                 key={tx.id}
                 style={{
@@ -611,10 +695,15 @@ export function HermitFinancePage() {
                     <Text size="2" className="text-secondary" style={{ display: "block" }}>
                       Received {tx.received} {tx.type === "stake" ? "hSUI" : "SUI"}
                     </Text>
+                    {tx.hash && (
+                      <Text size="1" className="text-secondary" style={{ display: "block", fontFamily: "monospace" }}>
+                        Tx: {tx.hash.substring(0, 12)}...
+                      </Text>
+                    )}
                   </Box>
                   <Box style={{ textAlign: "right" }}>
                     <Text size="2" className="text-gradient" style={{ fontWeight: 600 }}>
-                      ✓ Completed
+                      {tx.status === "completed" ? "✓ Completed" : tx.status === "pending" ? "⏳ Pending" : "❌ Failed"}
                     </Text>
                     <Text size="1" className="text-secondary" style={{ display: "block" }}>
                       {tx.date}
