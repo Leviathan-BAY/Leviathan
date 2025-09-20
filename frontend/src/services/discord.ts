@@ -76,6 +76,9 @@ class DiscordService {
       return;
     }
 
+    // Store current page to return to after Discord auth
+    localStorage.setItem('discord_return_url', window.location.pathname);
+
     const authUrl = this.getAuthUrl();
     console.log('Redirecting to Discord:', authUrl);
     window.location.href = authUrl;
@@ -253,6 +256,7 @@ class DiscordService {
     localStorage.removeItem('discord_user');
     localStorage.removeItem('discord_access_token');
     localStorage.removeItem('discord_oauth_state');
+    localStorage.removeItem('discord_return_url');
   }
 }
 

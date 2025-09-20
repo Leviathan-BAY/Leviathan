@@ -1,9 +1,13 @@
 import { Container, Flex, Box, Text } from "@radix-ui/themes";
 import { Outlet, Link } from "react-router-dom";
 import { WalletStatus } from "../WalletStatus";
+import { useScrollToTop, scrollToTop } from "../hooks/useScrollToTop";
 import leviathanLogo from "../assets/images/Leviathanlogo.png";
 
 export function MainLayout() {
+  // Enable scroll to top on route changes
+  useScrollToTop();
+
   return (
     <Box
       style={{
@@ -25,7 +29,7 @@ export function MainLayout() {
         <Container size="4">
           <Flex justify="between" align="center" py="4">
             {/* Logo */}
-            <Link to="/" style={{ textDecoration: "none" }}>
+            <Link to="/" style={{ textDecoration: "none" }} onClick={scrollToTop}>
               <Flex align="center" gap="3">
                 <img
                   src={leviathanLogo}
@@ -40,17 +44,17 @@ export function MainLayout() {
 
             {/* Navigation */}
             <Flex align="center" gap="6">
-              <Link to="/hermit-finance" style={{ textDecoration: "none" }}>
+              <Link to="/hermit-finance" style={{ textDecoration: "none" }} onClick={scrollToTop}>
                 <Text size="3" weight="medium" style={{ color: "white", cursor: "pointer" }}>
                   Hermit Finance
                 </Text>
               </Link>
-              <Link to="/humpback-launchpad" style={{ textDecoration: "none" }}>
+              <Link to="/humpback-launchpad" style={{ textDecoration: "none" }} onClick={scrollToTop}>
                 <Text size="3" weight="medium" style={{ color: "white", cursor: "pointer" }}>
                   Humpback Launchpad
                 </Text>
               </Link>
-              <Link to="/splash-zone" style={{ textDecoration: "none" }}>
+              <Link to="/splash-zone" style={{ textDecoration: "none" }} onClick={scrollToTop}>
                 <Text size="3" weight="medium" style={{ color: "white", cursor: "pointer" }}>
                   Splash Zone
                 </Text>

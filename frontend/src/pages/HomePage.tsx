@@ -1,6 +1,7 @@
 import { Flex, Box, Heading, Text, Grid, Card, Button } from "@radix-ui/themes";
 import { Link } from "react-router-dom";
 import { ArrowRightIcon } from "@radix-ui/react-icons";
+import { scrollToTop } from "../hooks/useScrollToTop";
 import LeviathanLogo from "../assets/images/Leviathanlogo.png";
 import hermitLogo from "../assets/images/Hermitlogo.png";
 import humpbackLogo from "../assets/images/Humpbacklogo.png";
@@ -68,7 +69,7 @@ export function HomePage() {
           </Grid>
 
           <Flex gap="3" style={{ marginTop: "8px" }}>
-            <Link to="/humpback-launchpad">
+            <Link to="/humpback-launchpad" onClick={scrollToTop}>
               <Button
                 size="3"
                 style={{ background: "linear-gradient(135deg, var(--sky-9), var(--blue-9))" }}
@@ -77,7 +78,7 @@ export function HomePage() {
                 Start Creating
               </Button>
             </Link>
-            <Link to="/splash-zone">
+            <Link to="/splash-zone" onClick={scrollToTop}>
               <Button size="3" variant="outline">
                 Explore Games
               </Button>
@@ -89,7 +90,7 @@ export function HomePage() {
       {/* Main Features Grid */}
       <Grid columns="3" gap="6" style={{ maxWidth: "1000px", margin: "0 auto" }}>
         {/* Hermit Finance */}
-        <Link to="/hermit-finance" style={{ textDecoration: "none" }}>
+        <Link to="/hermit-finance" style={{ textDecoration: "none" }} onClick={scrollToTop}>
           <Card
             style={cardStyle}
             onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHoverStyle)}
@@ -115,7 +116,7 @@ export function HomePage() {
         </Link>
 
         {/* Humpback Launchpad */}
-        <Link to="/humpback-launchpad" style={{ textDecoration: "none" }}>
+        <Link to="/humpback-launchpad" style={{ textDecoration: "none" }} onClick={scrollToTop}>
           <Card
             style={cardStyle}
             onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHoverStyle)}
@@ -141,7 +142,7 @@ export function HomePage() {
         </Link>
 
         {/* Splash Zone */}
-        <Link to="/splash-zone" style={{ textDecoration: "none" }}>
+        <Link to="/splash-zone" style={{ textDecoration: "none" }} onClick={scrollToTop}>
           <Card
             style={cardStyle}
             onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHoverStyle)}
@@ -184,7 +185,7 @@ export function HomePage() {
           Join creators and players building the next generation of blockchain games on Sui
         </Text>
         <Flex gap="4" justify="center">
-          <Link to="/humpback-launchpad">
+          <Link to="/humpback-launchpad" onClick={scrollToTop}>
             <Button
               size="3"
               style={{ background: "linear-gradient(135deg, var(--sky-9), var(--blue-9))" }}
@@ -192,7 +193,7 @@ export function HomePage() {
               Start Creating
             </Button>
           </Link>
-          <Link to="/splash-zone">
+          <Link to="/splash-zone" onClick={scrollToTop}>
             <Button size="3" variant="outline">
               Explore Games
             </Button>
