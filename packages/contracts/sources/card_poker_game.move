@@ -79,7 +79,7 @@ module leviathan::card_poker_game {
         launch_fee: u64,
         ctx: &mut tx_context::TxContext
     ) {
-        assert!(combination_size > 0 && combination_size <= cards_per_hand, 1);
+        assert!(combination_size > 0u8 && combination_size <= cards_per_hand, 1);
         let template = CardPokerTemplate {
             id: new(ctx),
             creator: tx_context::sender(ctx),
@@ -181,11 +181,11 @@ module leviathan::card_poker_game {
 
     fun new_deck(num_suits: u8, ranks_per_suit: u8): vector<u8> {
         let mut deck = vector::empty<u8>();
-        let mut s = 0;
+        let mut s: u8 = 0u8;
         while (s < num_suits) {
-            let mut r = 0;
+            let mut r: u8 = 0u8;
             while (r < ranks_per_suit) {
-                let card_id = s * ranks_per_suit + r;
+                let card_id: u8 = s * ranks_per_suit + r;
                 vector::push_back(&mut deck, card_id);
                 r = r + 1;
             };
@@ -232,10 +232,10 @@ module leviathan::card_poker_game {
         let n = vector::length(players);
         let mut i = 0;
         while (i < n) {
-            let score = if (victory_mode == 0) {
+            let score = if (victory_mode == 0u8) {
                 evaluate_hand(vector::borrow(hands, i), combination_size, ranks_per_suit)
             } else {
-                highcard_sum(vector::borrow(hands, i))
+                highcard_sum(vector::borrow(hands, i), ranks_per_suit)
             };
             if (score > best_score) {
                 best_score = score;
@@ -431,11 +431,11 @@ module leviathan::card_poker_game {
     }
 
 
-    fun highcard_sum(hand: &vector<u8>): u64 {
+    fun highcard_sum(hand: &vector<u8>,  ranks_per_suit: u8): u64 {
         let mut sum: u64 = 0;
         let mut i = 0;
         while (i < vector::length(hand)) {
-            let rank = (*vector::borrow(hand, i)) % 13;
+            let rank = (*vector::borrow(hand, i)) % ranks_per_suit;
             sum = sum + (rank as u64);
             i = i + 1;
         };
