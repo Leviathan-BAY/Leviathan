@@ -173,7 +173,7 @@ export class BoardGameTemplateTransactions {
     const [coin] = tx.splitCoins(tx.gas, [stakeAmount]);
 
     tx.moveCall({
-      target: `${PACKAGE_ID}::board_game_maker::${CONTRACT_FUNCTIONS.START_GAME}`,
+      target: `${PACKAGE_ID}::board_game_launcher::${CONTRACT_FUNCTIONS.START_GAME}`,
       arguments: [
         tx.object(templateId),
         coin
@@ -193,7 +193,7 @@ export class BoardGameTemplateTransactions {
     const [coin] = tx.splitCoins(tx.gas, [stakeAmount]);
 
     tx.moveCall({
-      target: `${PACKAGE_ID}::board_game_maker::${CONTRACT_FUNCTIONS.JOIN_GAME}`,
+      target: `${PACKAGE_ID}::board_game_launcher::${CONTRACT_FUNCTIONS.JOIN_GAME}`,
       arguments: [
         tx.object(gameInstanceId),
         tx.object(templateId),
@@ -213,7 +213,7 @@ export class BoardGameTemplateTransactions {
     const tx = new Transaction();
 
     tx.moveCall({
-      target: `${PACKAGE_ID}::board_game_maker::${CONTRACT_FUNCTIONS.ROLL_DICE_AND_MOVE}`,
+      target: `${PACKAGE_ID}::board_game_launcher::${CONTRACT_FUNCTIONS.ROLL_DICE_AND_MOVE}`,
       arguments: [
         tx.object(gameInstanceId),
         tx.object(templateId),
@@ -224,6 +224,7 @@ export class BoardGameTemplateTransactions {
 
     return tx;
   }
+
 }
 
 // Game Launchpad Transactions

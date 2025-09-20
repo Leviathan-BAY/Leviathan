@@ -2,16 +2,15 @@
 // These will be updated with actual deployed contract addresses
 
 // Main package ID - update this when contracts are deployed
-export const PACKAGE_ID = "0xd91758ba16fba4cb322da324d857ce5b50634324312f328814ea9c417acc6df3";
+export const PACKAGE_ID = "0x76be803ab8660d9087dd4b1e5ffd7b075772ebf1d6607070690f277707c37fb6";
 
 // Object IDs for deployed contracts - update when deployed
 export const CONTRACT_OBJECTS = {
   // hSUI Vault object ID
-  HSUI_VAULT: "0x0000000000000000000000000000000000000000000000000000000000000001",
+  HSUI_VAULT: "0xeac6161403e0c82a54ae5dfb2125ead64eaada834ee09e80e21e108d231e42fd",
   // hSUI Admin Cap object ID
-  HSUI_ADMIN_CAP: "0x0000000000000000000000000000000000000000000000000000000000000002",
+  HSUI_ADMIN_CAP: "0xcf6f069de322507e795e3941ab6caf63bff4f40046dddd708fc5952ddae5d81b",
   // Game Launchpad object ID (if exists)
-  GAME_LAUNCHPAD: "0x0000000000000000000000000000000000000000000000000000000000000003"
 } as const;
 
 // Cell types from board_game_maker.move (for board game templates)
@@ -68,12 +67,14 @@ export const CONTRACT_FUNCTIONS = {
   UPDATE_FEE_RATE: "update_fee_rate",
   GET_VAULT_INFO: "get_vault_info",
 
-  // Board Game Maker - Board Game Template functions
+  // Board Game Maker - Template creation and configuration functions
   CREATE_GAME_TEMPLATE: "create_game_template",
   SET_BOARD_CELL: "set_board_cell",
   SET_MULTIPLE_CELLS: "set_multiple_cells",
   SET_START_POSITIONS: "set_start_positions",
   SET_FINISH_POSITIONS: "set_finish_positions",
+
+  // Board Game Launcher - Game instance and gameplay functions
   START_GAME: "start_game",
   JOIN_GAME: "join_game",
   ROLL_DICE_AND_MOVE: "roll_dice_and_move",

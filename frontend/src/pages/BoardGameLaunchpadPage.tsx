@@ -211,163 +211,123 @@ const BoardGameLaunchpadPage: React.FC = () => {
     }));
   }, []);
 
-  // 실제 컨트랙트 호출을 통한 게임 템플릿 배포
   const deployGameTemplate = useCallback(async () => {
-    if (!isConnected) {
-      alert('Please connect your wallet first');
-      return;
-    }
+  if (!isConnected) {
+    alert('Please connect your wallet first');
+    return;
+  }
 
-    if (!gameConfig.name.trim()) {
-      alert('Please enter a game name');
-      return;
-    }
+  if (!gameConfig.name.trim()) {
+    alert('Please enter a game name');
+    return;
+  }
 
-    if (gameConfig.startPositions.length === 0) {
-      alert('Please set at least one start position');
-      return;
-    }
+  if (gameConfig.startPositions.length === 0) {
+    alert('Please set at least one start position');
+    return;
+  }
 
-    if (gameConfig.finishPositions.length === 0) {
-      alert('Please set at least one finish position');
-      return;
-    }
+  if (gameConfig.finishPositions.length === 0) {
+    alert('Please set at least one finish position');
+    return;
+  }
 
-    setIsDeploying(true);
+  setIsDeploying(true);
 
-    try {
-      // Step 1: Create game template
-      const createTemplateTx = BoardGameTemplateTransactions.createGameTemplate(
-        gameConfig.name,
-        gameConfig.description,
-        gameConfig.diceMin,
-        gameConfig.diceMax,
-        gameConfig.piecesPerPlayer,
-        TransactionUtils.suiToMist(gameConfig.stakeAmount)
+  try {
+    // Step 1: Create game template
+    const createTemplateTx = BoardGameTemplateTransactions.createGameTemplate(
+      gameConfig.name,
+      gameConfig.description,
+      gameConfig.diceMin,
+      gameConfig.diceMax,
+      gameConfig.piecesPerPlayer,
+      TransactionUtils.suiToMist(gameConfig.stakeAmount)
+    );
+
+    console.log('Creating game template...');
+
+    // Execute template creation
+    const templateResult = await new Promise<{ digest: string; events?: any[] }>((resolve, reject) => {
+      signAndExecute(
+        { transaction: createTemplateTx },
+        {
+          onSuccess: (result) => resolve(result),
+          onError: (error) => reject(error),
+        }
       );
+    });
 
-      console.log('Creating game template...');
+    // 이벤트에서 templateId 추출
+    const events = templateResult.events ?? [];
+    const templateEvent = events.find(e => e.type === 'TemplateCreated');
+    if (!templateEvent) throw new Error('TemplateCreated event not found');
 
-      // Execute template creation
-      const templateResult = await new Promise<{ digest: string; effects?: any }>((resolve, reject) => {
-        signAndExecute(
-          {
-            transaction: createTemplateTx,
-          },
-          {
-            onSuccess: (result) => {
-              console.log('Template creation successful:', result);
-              resolve(result);
-            },
-            onError: (error) => {
-              console.error('Template creation failed:', error);
-              reject(error);
-            },
-          }
-        );
-      });
+    const templateId = templateEvent.data.template_id;
+    console.log('Template created successfully, templateId:', templateId);
 
-      console.log('Template created successfully, digest:', templateResult.digest);
+    // Step 2: Set board configuration
+    const nonDefaultCells = gameConfig.board
+      .map((cellType, index) => ({ index, cellType }))
+      .filter(cell => cell.cellType !== CELL_TYPES.UNSET && cell.cellType !== CELL_TYPES.PASSABLE);
 
-      // For now, we'll use a mock template ID since we need to parse the actual object ID from the transaction result
-      // In a real implementation, you'd parse the created object ID from the transaction effects
-      const mockTemplateId = `0x${Math.random().toString(16).substring(2, 66)}`;
+    if (nonDefaultCells.length > 0) {
+      console.log('Setting board cells...');
+      const positions = nonDefaultCells.map(cell => cell.index);
+      const cellTypes = nonDefaultCells.map(cell => cell.cellType);
 
-      // Step 2: Set board configuration (if not default)
-      const nonDefaultCells = gameConfig.board
-        .map((cellType, index) => ({ index, cellType }))
-        .filter(cell => cell.cellType !== CELL_TYPES.UNSET && cell.cellType !== CELL_TYPES.PASSABLE);
-
-      if (nonDefaultCells.length > 0) {
-        console.log('Setting board cells...');
-        const positions = nonDefaultCells.map(cell => cell.index);
-        const cellTypes = nonDefaultCells.map(cell => cell.cellType);
-
-        const setBoardTx = BoardGameTemplateTransactions.setMultipleCells(
-          mockTemplateId,
-          positions,
-          cellTypes
-        );
-
-        await new Promise<void>((resolve, reject) => {
-          signAndExecute(
-            {
-              transaction: setBoardTx,
-            },
-            {
-              onSuccess: () => {
-                console.log('Board cells set successfully');
-                resolve();
-              },
-              onError: (error) => {
-                console.error('Setting board cells failed:', error);
-                reject(error);
-              },
-            }
-          );
-        });
-      }
-
-      // Step 3: Set start positions
-      console.log('Setting start positions...');
-      const setStartTx = BoardGameTemplateTransactions.setStartPositions(
-        mockTemplateId,
-        gameConfig.startPositions
-      );
+      const setBoardTx = BoardGameTemplateTransactions.setMultipleCells(templateId, positions, cellTypes);
 
       await new Promise<void>((resolve, reject) => {
         signAndExecute(
+          { transaction: setBoardTx },
           {
-            transaction: setStartTx,
-          },
-          {
-            onSuccess: () => {
-              console.log('Start positions set successfully');
-              resolve();
-            },
-            onError: (error) => {
-              console.error('Setting start positions failed:', error);
-              reject(error);
-            },
+            onSuccess: () => resolve(),
+            onError: (error) => reject(error),
           }
         );
       });
-
-      // Step 4: Set finish positions
-      console.log('Setting finish positions...');
-      const setFinishTx = BoardGameTemplateTransactions.setFinishPositions(
-        mockTemplateId,
-        gameConfig.finishPositions
-      );
-
-      await new Promise<void>((resolve, reject) => {
-        signAndExecute(
-          {
-            transaction: setFinishTx,
-          },
-          {
-            onSuccess: () => {
-              console.log('Finish positions set successfully');
-              resolve();
-            },
-            onError: (error) => {
-              console.error('Setting finish positions failed:', error);
-              reject(error);
-            },
-          }
-        );
-      });
-
-      setDeployedGameId(mockTemplateId);
-      alert(`Game template deployed successfully!\nTemplate ID: ${mockTemplateId}`);
-
-    } catch (error) {
-      console.error('Deployment failed:', error);
-      alert(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsDeploying(false);
     }
-  }, [isConnected, gameConfig, signAndExecute]);
+
+    // Step 3: Set start positions
+    console.log('Setting start positions...');
+    const setStartTx = BoardGameTemplateTransactions.setStartPositions(templateId, gameConfig.startPositions);
+
+    await new Promise<void>((resolve, reject) => {
+      signAndExecute(
+        { transaction: setStartTx },
+        {
+          onSuccess: () => resolve(),
+          onError: (error) => reject(error),
+        }
+      );
+    });
+
+    // Step 4: Set finish positions
+    console.log('Setting finish positions...');
+    const setFinishTx = BoardGameTemplateTransactions.setFinishPositions(templateId, gameConfig.finishPositions);
+
+    await new Promise<void>((resolve, reject) => {
+      signAndExecute(
+        { transaction: setFinishTx },
+        {
+          onSuccess: () => resolve(),
+          onError: (error) => reject(error),
+        }
+      );
+    });
+
+    setDeployedGameId(templateId);
+    alert(`Game template deployed successfully!\nTemplate ID: ${templateId}`);
+
+  } catch (error) {
+    console.error('Deployment failed:', error);
+    alert(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  } finally {
+    setIsDeploying(false);
+  }
+}, [isConnected, gameConfig, signAndExecute]);
+
 
   const renderCellTypeSelector = () => (
     <Box mb="4">
