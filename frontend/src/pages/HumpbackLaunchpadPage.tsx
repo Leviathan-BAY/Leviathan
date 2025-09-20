@@ -5,12 +5,14 @@ import humpbackLogo from "../assets/images/Humpbacklogo.png";
 import { useGameLaunchpad, useGameMaker } from "../contracts/hooks";
 import { MOCK_GAMES } from "../contracts/constants";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function HumpbackLaunchpadPage() {
   const currentAccount = useCurrentAccount();
   const { publishedGames, gameStats, isLoading } = useGameLaunchpad();
   const { createGame } = useGameMaker();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const cardStyle = {
     background: "rgba(30, 41, 59, 0.4)",
@@ -140,16 +142,9 @@ export function HumpbackLaunchpadPage() {
                 <Button
                   size="3"
                   style={{ background: "linear-gradient(135deg, var(--sky-9), var(--blue-9))" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCreateGame("board");
-                  }}
-                  disabled={!currentAccount}
+                  onClick={() => navigate('/board-game-launchpad')}
                 >
                   <PlusIcon /> Create Now
-                </Button>
-                <Button variant="outline" size="3">
-                  <Pencil2Icon /> Customize
                 </Button>
               </Flex>
             </Box>
