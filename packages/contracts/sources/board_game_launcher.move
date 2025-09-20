@@ -19,6 +19,7 @@ module leviathan::board_game_launcher {
     const E_INSUFFICIENT_STAKE: u64 = 11;
     const E_INVALID_MOVE: u64 = 13;
     const E_UNAUTHORIZED: u64 = 3;
+    const E_NO_DICE_ROLL: u64 = 5;
 
     /// Cell types for 10x10 board (imported constants)
     const CELL_TYPE_BLOCKED: u8 = 1;
@@ -176,37 +177,24 @@ module leviathan::board_game_launcher {
 
     /// 주사위 굴리기 및 말 이동
     #[allow(lint(public_random))]
-    public entry fun roll_dice_and_move(
+    public entry fun roll_dice(
         game: &mut GameInstance,
         template: &GameTemplate,
-        piece_index: u8,
         r: &Random,
         ctx: &mut TxContext
     ) {
-        // 게임 상태 확인
         assert!(game.state == GAME_STATE_PLAYING, E_GAME_FINISHED);
-
         let player = tx_context::sender(ctx);
         let current_player_num = get_player_number(game, player);
         assert!(current_player_num == game.current_player, E_NOT_YOUR_TURN);
 
-        let pieces_per_player = board_game_maker::get_template_pieces_per_player(template);
-        assert!(piece_index < pieces_per_player, E_INVALID_MOVE);
-
-        // 주사위 굴리기
         let mut gen = random::new_generator(r, ctx);
         let (dice_min, dice_max) = board_game_maker::get_template_dice_range(template);
         let dice_range = (dice_max - dice_min + 1) as u16;
         let dice_value = (random::generate_u16(&mut gen) % dice_range) as u8 + dice_min;
 
+        // game에 마지막 주사위 값 저장
         game.last_dice_roll = option::some(dice_value);
-
-        // 말 이동
-        move_piece(game, template, current_player_num, piece_index, dice_value, ctx);
-
-        // 턴 전환
-        game.current_player = if (game.current_player == 1) { 2 } else { 1 };
-        game.turn_count = game.turn_count + 1;
 
         event::emit(DiceRolled {
             game_id: object::id(game),
@@ -214,10 +202,41 @@ module leviathan::board_game_launcher {
             dice_value,
             timestamp: tx_context::epoch_timestamp_ms(ctx),
         });
+    }
+
+    public entry fun move_piece_with_dice(
+        game: &mut GameInstance,
+        template: &GameTemplate,
+        piece_index: u8,
+        ctx: &mut TxContext
+    ) {
+        assert!(game.state == GAME_STATE_PLAYING, E_GAME_FINISHED);
+        let player = tx_context::sender(ctx);
+        let current_player_num = get_player_number(game, player);
+        assert!(current_player_num == game.current_player, E_NOT_YOUR_TURN);
+
+        // ✅ 먼저 Option 값이 있는지 체크
+        let has_roll = option::is_some(&game.last_dice_roll);
+        assert!(option::is_some(&game.last_dice_roll), E_NO_DICE_ROLL);
+        let dice_value_ref = option::borrow(&game.last_dice_roll);
+        let dice_value = *dice_value_ref; // u8 값 복사
+        // 이동 후 dice roll 초기화
+        game.last_dice_roll = option::none<u8>();
+
+        let pieces_per_player = board_game_maker::get_template_pieces_per_player(template);
+        assert!(piece_index < pieces_per_player, E_INVALID_MOVE);
+
+        move_piece(game, template, current_player_num, piece_index, dice_value, ctx);
+
+        // 턴 전환
+        game.current_player = if (game.current_player == 1) { 2 } else { 1 };
+        game.turn_count = game.turn_count + 1;
 
         // 승리 조건 확인
         check_victory_condition(game, template, ctx);
     }
+
+
 
     /// 말 이동 로직
     fun move_piece(

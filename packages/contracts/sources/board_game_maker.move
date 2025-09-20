@@ -28,7 +28,7 @@ module leviathan::board_game_maker {
         description: String,
 
         // 10x10 보드 설정 (0-99 인덱스)
-        board_cells: Table<u8, u8>,  // position -> cell_type
+        board_cells: vector<u8>,  // position -> cell_type
 
         // 게임 규칙 설정
         dice_min: u8,                // 주사위 최소값 (예: 1)
@@ -60,14 +60,12 @@ module leviathan::board_game_maker {
         ctx: &mut TxContext
     ) {
         // === 1. 보드 테이블 생성 ===
-        let mut table = table::new<u8, u8>(ctx);
+        let mut board_cells = vector::empty<u8>();
         let mut i = 0;
         let len = vector::length(&board);
         while (i < len) {
             let cell_type = *vector::borrow(&board, i);
-            if (cell_type != 0) {
-                table::add(&mut table, i as u8, cell_type);
-            };
+            vector::push_back(&mut board_cells, cell_type);
             i = i + 1;
         };
 
@@ -77,7 +75,7 @@ module leviathan::board_game_maker {
             creator: tx_context::sender(ctx),
             name,
             description,
-            board_cells: table,
+            board_cells,
             dice_min,
             dice_max,
             pieces_per_player,
@@ -132,6 +130,6 @@ module leviathan::board_game_maker {
     }
 
     public fun get_board_cell(template: &GameTemplate, position: u8): u8 {
-        *table::borrow(&template.board_cells, position)
+        *vector::borrow(&template.board_cells, position as u64)
     }
 }
