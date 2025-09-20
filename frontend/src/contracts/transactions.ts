@@ -327,6 +327,112 @@ export class GameRegistryTransactions {
   }
 }
 
+// Card Poker Game Transactions
+export class CardPokerGameTransactions {
+  static createCardPokerTemplate(
+    name: string,
+    description: string,
+    metaUri: string,
+    numSuits: number,
+    ranksPerSuit: number,
+    cardsPerHand: number,
+    combinationSize: number,
+    victoryMode: number,
+    stakeAmount: bigint,
+    launchFee: bigint
+  ): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_poker_game::create_card_poker_template`,
+      arguments: [
+        tx.pure.string(name),
+        tx.pure.string(description),
+        tx.pure.string(metaUri),
+        tx.pure.u8(numSuits),
+        tx.pure.u8(ranksPerSuit),
+        tx.pure.u8(cardsPerHand),
+        tx.pure.u8(combinationSize),
+        tx.pure.u8(victoryMode),
+        tx.pure.u64(stakeAmount),
+        tx.pure.u64(launchFee)
+      ]
+    });
+
+    return tx;
+  }
+
+  static createGameInstance(
+    templateId: string
+  ): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_poker_game::create_game_instance`,
+      arguments: [
+        tx.object(templateId)
+      ]
+    });
+
+    return tx;
+  }
+
+  static joinGame(
+    instanceId: string,
+    stakeAmount: bigint
+  ): Transaction {
+    const tx = new Transaction();
+
+    const [stakeCoin] = tx.splitCoins(tx.gas, [stakeAmount]);
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_poker_game::join_game`,
+      arguments: [
+        tx.object(instanceId),
+        stakeCoin
+      ]
+    });
+
+    return tx;
+  }
+
+  static startGame(
+    instanceId: string,
+    templateId: string,
+    randomObjectId: string
+  ): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_poker_game::start_game`,
+      arguments: [
+        tx.object(instanceId),
+        tx.object(templateId),
+        tx.object(randomObjectId)
+      ]
+    });
+
+    return tx;
+  }
+
+  static finalizeGame(
+    instanceId: string,
+    templateId: string
+  ): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_poker_game::finalize`,
+      arguments: [
+        tx.object(instanceId),
+        tx.object(templateId)
+      ]
+    });
+
+    return tx;
+  }
+}
+
 // Utility functions
 export const TransactionUtils = {
   // Convert string to bytes for Move calls

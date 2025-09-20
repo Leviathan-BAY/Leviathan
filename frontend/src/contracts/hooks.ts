@@ -7,6 +7,7 @@ import {
   HermitFinanceTransactions,
   BoardGameTemplateTransactions,
   GameRegistryTransactions,
+  CardPokerGameTransactions,
   TransactionUtils
 } from "./transactions";
 
@@ -662,5 +663,274 @@ export const useGameRegistry = () => {
               registeredGames.isLoading ||
               waitingInstances.isLoading ||
               registryStats.isLoading
+  };
+};
+
+// Card Poker Game Hooks
+export const useCardPokerGame = () => {
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+  const queryClient = useQueryClient();
+
+  const createTemplate = useMutation({
+    mutationFn: async (data: {
+      name: string;
+      description: string;
+      metaUri: string;
+      numSuits: number;
+      ranksPerSuit: number;
+      cardsPerHand: number;
+      combinationSize: number;
+      victoryMode: number;
+      stakeAmount: number;
+      launchFee: number;
+    }) => {
+      const tx = CardPokerGameTransactions.createCardPokerTemplate(
+        data.name,
+        data.description,
+        data.metaUri,
+        data.numSuits,
+        data.ranksPerSuit,
+        data.cardsPerHand,
+        data.combinationSize,
+        data.victoryMode,
+        TransactionUtils.suiToMist(data.stakeAmount),
+        TransactionUtils.suiToMist(data.launchFee)
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Card poker template created:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Card poker template creation failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['poker-templates'] });
+    }
+  });
+
+  const createGameInstance = useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+    }) => {
+      const tx = CardPokerGameTransactions.createGameInstance(data.templateId);
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Poker game instance created:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Poker game instance creation failed:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['poker-instances'] });
+    }
+  });
+
+  const joinGame = useMutation({
+    mutationFn: async (data: {
+      instanceId: string;
+      stakeAmount: number;
+    }) => {
+      const tx = CardPokerGameTransactions.joinGame(
+        data.instanceId,
+        TransactionUtils.suiToMist(data.stakeAmount)
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Joined poker game:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Failed to join poker game:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['poker-instances'] });
+    }
+  });
+
+  const startGame = useMutation({
+    mutationFn: async (data: {
+      instanceId: string;
+      templateId: string;
+      randomObjectId: string;
+    }) => {
+      const tx = CardPokerGameTransactions.startGame(
+        data.instanceId,
+        data.templateId,
+        data.randomObjectId
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Poker game started:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Failed to start poker game:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['poker-instances'] });
+    }
+  });
+
+  const finalizeGame = useMutation({
+    mutationFn: async (data: {
+      instanceId: string;
+      templateId: string;
+    }) => {
+      const tx = CardPokerGameTransactions.finalizeGame(
+        data.instanceId,
+        data.templateId
+      );
+
+      return new Promise((resolve, reject) => {
+        signAndExecute(
+          { transaction: tx },
+          {
+            onSuccess: (result: any) => {
+              console.log("Poker game finalized:", result);
+              resolve(result);
+            },
+            onError: (error: any) => {
+              console.error("Failed to finalize poker game:", error);
+              reject(error);
+            }
+          }
+        );
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['poker-instances'] });
+    }
+  });
+
+  // Query poker game templates
+  const pokerTemplates = useQuery({
+    queryKey: ['poker-templates'],
+    queryFn: async () => {
+      try {
+        // TODO: Query actual poker templates from the contract
+        // For now, return mock data
+        return [
+          {
+            id: "0xpoker1",
+            creator: "0x1234567890abcdef1234567890abcdef12345678",
+            name: "Texas Hold'em",
+            description: "Classic Texas Hold'em poker with 2 hole cards and 5 community cards",
+            metaUri: "https://example.com/texas-holdem",
+            numSuits: 4,
+            ranksPerSuit: 13,
+            cardsPerHand: 7,
+            combinationSize: 5,
+            victoryMode: 0, // Best poker hand
+            stakeAmount: 1000000000, // 1 SUI in mist
+            launchFee: 100000000, // 0.1 SUI in mist
+            createdAt: Date.now() - 86400000,
+            isActive: true
+          },
+          {
+            id: "0xpoker2",
+            creator: "0xabcdef1234567890abcdef1234567890abcdef12",
+            name: "Five Card Draw",
+            description: "Simple 5-card draw poker game",
+            metaUri: "https://example.com/five-card-draw",
+            numSuits: 4,
+            ranksPerSuit: 13,
+            cardsPerHand: 5,
+            combinationSize: 5,
+            victoryMode: 0, // Best poker hand
+            stakeAmount: 500000000, // 0.5 SUI in mist
+            launchFee: 50000000, // 0.05 SUI in mist
+            createdAt: Date.now() - 172800000,
+            isActive: true
+          }
+        ];
+      } catch (error) {
+        console.error("Failed to fetch poker templates:", error);
+        return [];
+      }
+    },
+    refetchInterval: 15000
+  });
+
+  // Query poker game instances
+  const pokerInstances = useQuery({
+    queryKey: ['poker-instances'],
+    queryFn: async () => {
+      try {
+        // TODO: Query actual poker instances from the contract
+        // For now, return mock data
+        return [
+          {
+            id: "0xinstance1",
+            templateId: "0xpoker1",
+            players: ["0x1234567890abcdef1234567890abcdef12345678"],
+            deck: [],
+            hands: [],
+            pot: 1000000000, // 1 SUI in mist
+            started: false,
+            ended: false,
+            winners: []
+          }
+        ];
+      } catch (error) {
+        console.error("Failed to fetch poker instances:", error);
+        return [];
+      }
+    },
+    refetchInterval: 5000
+  });
+
+  return {
+    createTemplate,
+    createGameInstance,
+    joinGame,
+    startGame,
+    finalizeGame,
+    pokerTemplates,
+    pokerInstances,
+    isLoading: createTemplate.isPending ||
+              createGameInstance.isPending ||
+              joinGame.isPending ||
+              startGame.isPending ||
+              finalizeGame.isPending ||
+              pokerTemplates.isLoading ||
+              pokerInstances.isLoading
   };
 };
