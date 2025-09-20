@@ -117,7 +117,7 @@ module leviathan::board_game_launcher {
             player1: option::some(tx_context::sender(ctx)),
             player2: option::none(),
             current_player: 1,
-            state: GAME_STATE_WAITING,
+            state: GAME_STATE_PLAYING, // 바로 플레이 상태로 시작
             winner: option::none(),
             player1_pieces: table::new(ctx),
             player2_pieces: table::new(ctx),
@@ -175,7 +175,7 @@ module leviathan::board_game_launcher {
         });
     }
 
-    /// 주사위 굴리기 및 말 이동
+    /// 주사위 굴리기 및 말 이동 (누구나 호출 가능)
     #[allow(lint(public_random))]
     public entry fun roll_dice(
         game: &mut GameInstance,
@@ -184,9 +184,7 @@ module leviathan::board_game_launcher {
         ctx: &mut TxContext
     ) {
         assert!(game.state == GAME_STATE_PLAYING, E_GAME_FINISHED);
-        let player = tx_context::sender(ctx);
-        let current_player_num = get_player_number(game, player);
-        assert!(current_player_num == game.current_player, E_NOT_YOUR_TURN);
+        // 소유권 확인 제거 - 누구나 주사위를 굴릴 수 있음
 
         let mut gen = random::new_generator(r, ctx);
         let (dice_min, dice_max) = board_game_maker::get_template_dice_range(template);
@@ -198,7 +196,7 @@ module leviathan::board_game_launcher {
 
         event::emit(DiceRolled {
             game_id: object::id(game),
-            player,
+            player: tx_context::sender(ctx),
             dice_value,
             timestamp: tx_context::epoch_timestamp_ms(ctx),
         });
@@ -211,9 +209,7 @@ module leviathan::board_game_launcher {
         ctx: &mut TxContext
     ) {
         assert!(game.state == GAME_STATE_PLAYING, E_GAME_FINISHED);
-        let player = tx_context::sender(ctx);
-        let current_player_num = get_player_number(game, player);
-        assert!(current_player_num == game.current_player, E_NOT_YOUR_TURN);
+        // 소유권 확인 제거 - 누구나 말을 움직일 수 있음
 
         // ✅ 먼저 Option 값이 있는지 체크
         let has_roll = option::is_some(&game.last_dice_roll);
@@ -226,7 +222,8 @@ module leviathan::board_game_launcher {
         let pieces_per_player = board_game_maker::get_template_pieces_per_player(template);
         assert!(piece_index < pieces_per_player, E_INVALID_MOVE);
 
-        move_piece(game, template, current_player_num, piece_index, dice_value, ctx);
+        // 기본적으로 플레이어 1로 처리 (단순화)
+        move_piece(game, template, 1, piece_index, dice_value, ctx);
 
         // 턴 전환
         game.current_player = if (game.current_player == 1) { 2 } else { 1 };
@@ -269,7 +266,7 @@ module leviathan::board_game_launcher {
 
         event::emit(PieceMoved {
             game_id: object::id(game),
-            player: get_player_address(game, player_num),
+            player: tx_context::sender(ctx), // 실제 호출자 주소 사용
             piece_index,
             from_position: current_pos,
             to_position: new_pos,
@@ -303,7 +300,7 @@ module leviathan::board_game_launcher {
 
             event::emit(PieceDied {
                 game_id: object::id(game),
-                player: get_player_address(game, player_num),
+                player: tx_context::sender(ctx), // 실제 호출자 주소 사용
                 piece_index,
                 position,
                 timestamp: tx_context::epoch_timestamp_ms(ctx),
