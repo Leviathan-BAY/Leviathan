@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator } from "@radix-ui/themes";
 import { PlayIcon, CubeIcon, HomeIcon } from "@radix-ui/react-icons";
 import { useBoardGameInstance } from "../contracts/hooks";
+import { BoardGameInstance } from "../utils/boardGameInstanceManager";
 
 interface GamePiece {
   id: number;
@@ -37,6 +38,11 @@ export function BoardPlayPage() {
   const currentAccount = useCurrentAccount();
   const client = useSuiClient();
   const { rollDiceAndMove } = useBoardGameInstance();
+
+  const location = useLocation();
+
+  // ✅ location.state에서 instance 받기
+  const passedInstance = (location.state as { instance?: BoardGameInstance })?.instance;
 
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(true);

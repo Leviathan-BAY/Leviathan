@@ -2,8 +2,8 @@
 // These will be updated with actual deployed contract addresses
 
 // Main package ID - update this when contracts are deployed
-export const PACKAGE_ID = "0xe4e0b9bb8d67e92fdec42fd8a601500aac6644050fc3171078f080f2afbd2eac";
-export const REGISTRY_ID = "0xa60215e242a48991076ff8e97be8307457b567fb66bc47bd3ebfdcc681b46fcd";
+export const PACKAGE_ID = "0x21131f4242b9b19f32a08c1635c5c0601d19b46cd87ca9a0140c8ed2a2525ac0";
+export const REGISTRY_ID = "0x870ad8f56c67aa516355be89df97f407cb1a327e0d7fa281443dce7eb3e68442";
 // Object IDs for deployed contracts - update when deployed
 export const CONTRACT_OBJECTS = {
   // hSUI Vault object ID

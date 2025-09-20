@@ -422,7 +422,7 @@ export const useGameRegistry = () => {
   const client = useSuiClient();
 
   // TODO: Replace with actual registry object ID from deployment
-  const REGISTRY_ID = "0xa60215e242a48991076ff8e97be8307457b567fb66bc47bd3ebfdcc681b46fcd";
+  const REGISTRY_ID = "0x870ad8f56c67aa516355be89df97f407cb1a327e0d7fa281443dce7eb3e68442";
 
   const registerGameTemplate = useMutation({
     mutationFn: async (data: {
