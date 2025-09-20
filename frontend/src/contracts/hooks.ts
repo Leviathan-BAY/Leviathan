@@ -10,6 +10,7 @@ import {
   CardPokerGameTransactions,
   TransactionUtils
 } from "./transactions";
+import { REGISTRY_ID } from "./constants";
 
 // Hermit Finance (hSUI) Hooks
 export const useHermitFinance = () => {
@@ -472,8 +473,6 @@ export const useGameRegistry = () => {
   const client = useSuiClient();
 
   // TODO: Replace with actual registry object ID from deployment
-  const REGISTRY_ID = "0x870ad8f56c67aa516355be89df97f407cb1a327e0d7fa281443dce7eb3e68442";
-
   const registerGameTemplate = useMutation({
     mutationFn: async (data: {
       templateId: string;
