@@ -21,7 +21,8 @@ import {
 } from '@radix-ui/react-icons';
 import { BOARD_CELL_TYPES } from '../contracts/constants';
 import { Transaction } from '@mysten/sui/transactions';
-
+import { PACKAGE_ID } from '../contracts/constants';
+import { useSuiClient } from '@mysten/dapp-kit';
 // Board cell types matching the Move contract
 const CELL_TYPES = {
   UNSET: -1,
@@ -31,7 +32,7 @@ const CELL_TYPES = {
   START: BOARD_CELL_TYPES.START,
   FINISH: BOARD_CELL_TYPES.FINISH,
 } as const;
-
+const RANDOM_OBJECT_ID = "0x8";
 const CELL_TYPE_COLORS = {
   [CELL_TYPES.UNSET]: '#1e293b',
   [CELL_TYPES.PASSABLE]: '#16a34a',
@@ -74,12 +75,14 @@ export function BoardGamePlayPage() {
   const currentAccount = useCurrentAccount();
   const navigate = useNavigate();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const client = useSuiClient();
 
   // 하드코딩된 패키지 ID
-  const HARDCODED_PACKAGE_ID = '0x51effb41ef8c83be013ac0450e4c4c268a49189a3e6412eba5df61501ebd4aba';
-  const HARDCODED_GAME_ID = '0x12345678'; // 하드코딩된 게임 인스턴스 ID
+  const HARDCODED_PACKAGE_ID = '0xa1a8da6c1b3bea68fe5f9d5c0d1a9fe6507664f77fd8ec7f84681a7287c2caef';
+  const HARDCODED_GAME_ID = '0x56b600c2a79683ba8e549bd623317a193e8e9d60e04e4abf17457771501fe693'; // 하드코딩된 게임 인스턴스 ID
 
   // 하드코딩된 게임 데이터
+  const [GAME_ID, setGameId] = useState();
   const [gameBoard, setGameBoard] = useState<BoardCell[]>([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [lastDiceRoll, setLastDiceRoll] = useState<number | null>(null);
@@ -185,6 +188,45 @@ export function BoardGamePlayPage() {
     setIsMyTurn(hardcodedPlayers[0]?.playerId === currentAccount?.address);
   }, [currentAccount]);
 
+  const handleStartGame = async () => {
+    if (!currentAccount) {
+      alert("Please connect your Sui wallet first to start the game!");
+      return;
+    }
+
+    try {
+      const tx = new Transaction();
+
+      // Move 컨트랙트의 start_game 함수 호출
+      tx.moveCall({
+        target: `${PACKAGE_ID}::board_game_launcher::start_game`,
+        arguments: [
+          tx.object(HARDCODED_PACKAGE_ID), // 템플릿 object
+          tx.splitCoins(tx.gas, [1_000_000_0])[0] // 1 SUI 스테이크
+        ]
+      });
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: (result) => {
+            console.log("Start game transaction successful:", result);
+            alert("Game started!");
+            // 게임 시작 시 추가 로직이 있다면 여기에서 state 업데이트 가능
+          },
+          onError: (error) => {
+            console.error("Start game transaction failed:", error);
+            alert("Transaction failed: " + error.message);
+          },
+        }
+      );
+
+    } catch (error) {
+      console.error("Error creating transaction:", error);
+      alert("Error creating start_game transaction");
+    }
+  };
+
   const handleDiceRoll = async () => {
     if (!isMyTurn || gameStatus === 'finished' || !currentAccount) return;
 
@@ -194,10 +236,11 @@ export function BoardGamePlayPage() {
 
       // Move 컨트랙트의 roll_dice_and_move 함수 호출
       tx.moveCall({
-        target: `${HARDCODED_PACKAGE_ID}::board_game_launcher::roll_dice_and_move`,
+        target: `${PACKAGE_ID}::board_game_launcher::roll_dice`,
         arguments: [
           tx.object(HARDCODED_GAME_ID), // game_id
-          tx.pure.u8(0), // piece_index (첫 번째 말)
+          tx.object(HARDCODED_PACKAGE_ID),
+          tx.object(RANDOM_OBJECT_ID),
         ]
       });
 
@@ -439,6 +482,17 @@ export function BoardGamePlayPage() {
 
         {/* Game Controls and Info */}
         <Box>
+            <Button
+              size="3"
+              onClick={handleStartGame}
+              style={{
+                width: "100%",
+                background: "linear-gradient(135deg, var(--green-9), var(--emerald-9))",
+                marginBottom: "8px"
+              }}
+            >
+              ▶ Start Game
+            </Button>
           <Flex direction="column" gap="4">
             {/* Current Turn */}
             <Card style={{ ...cardStyle, padding: "16px" }}>
