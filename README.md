@@ -1,5 +1,3 @@
-Here’s the **complete README.md** including everything we just refined — fully merged into a single, cohesive file for you to drop into your repo.
-
 ```markdown
 # Leviathan – 100% On-Chain Web3 Game Platform
 
