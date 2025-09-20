@@ -54,6 +54,11 @@ export function MainLayout() {
                   Humpback Launchpad
                 </Text>
               </Link>
+              <Link to="/card-game-launchpad" style={{ textDecoration: "none" }} onClick={scrollToTop}>
+                <Text size="3" weight="medium" style={{ color: "white", cursor: "pointer" }}>
+                  Card Games
+                </Text>
+              </Link>
               <Link to="/splash-zone" style={{ textDecoration: "none" }} onClick={scrollToTop}>
                 <Text size="3" weight="medium" style={{ color: "white", cursor: "pointer" }}>
                   Splash Zone

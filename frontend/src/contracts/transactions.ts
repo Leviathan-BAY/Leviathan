@@ -227,6 +227,114 @@ export class BoardGameTemplateTransactions {
 
 }
 
+// Card Game Template Transactions
+export class CardGameTransactions {
+  static createCardGameTemplate(
+    name: string,
+    description: string,
+    gameType: number,
+    rulesJson: number[],
+    minPlayers: number,
+    maxPlayers: number,
+    stakeAmount: bigint,
+    gameDurationLimit: bigint,
+    winConditions: number[]
+  ): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_game_maker::${CONTRACT_FUNCTIONS.CREATE_CARD_GAME_TEMPLATE}`,
+      arguments: [
+        tx.pure.vector("u8", Array.from(new TextEncoder().encode(name))),
+        tx.pure.vector("u8", Array.from(new TextEncoder().encode(description))),
+        tx.pure.u8(gameType),
+        tx.pure.vector("u8", rulesJson),
+        tx.pure.u8(minPlayers),
+        tx.pure.u8(maxPlayers),
+        tx.pure.u64(stakeAmount),
+        tx.pure.u64(gameDurationLimit),
+        tx.pure.vector("u8", winConditions)
+      ]
+    });
+
+    return tx;
+  }
+
+  static createGameInstance(
+    templateId: string,
+    stakeAmount: bigint
+  ): Transaction {
+    const tx = new Transaction();
+
+    const [coin] = tx.splitCoins(tx.gas, [stakeAmount]);
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_game_maker::${CONTRACT_FUNCTIONS.CREATE_GAME_INSTANCE}`,
+      arguments: [
+        tx.object(templateId),
+        coin
+      ]
+    });
+
+    return tx;
+  }
+
+  static joinGameInstance(
+    instanceId: string,
+    templateId: string,
+    stakeAmount: bigint
+  ): Transaction {
+    const tx = new Transaction();
+
+    const [coin] = tx.splitCoins(tx.gas, [stakeAmount]);
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_game_maker::${CONTRACT_FUNCTIONS.JOIN_GAME_INSTANCE}`,
+      arguments: [
+        tx.object(instanceId),
+        tx.object(templateId),
+        coin
+      ]
+    });
+
+    return tx;
+  }
+
+  static submitGameResult(
+    instanceId: string,
+    templateId: string,
+    winner: string,
+    finalScores: number[]
+  ): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_game_maker::${CONTRACT_FUNCTIONS.SUBMIT_GAME_RESULT}`,
+      arguments: [
+        tx.object(instanceId),
+        tx.object(templateId),
+        tx.pure.address(winner),
+        tx.pure.vector("u64", finalScores)
+      ]
+    });
+
+    return tx;
+  }
+
+  static toggleTemplateActive(templateId: string): Transaction {
+    const tx = new Transaction();
+
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_game_maker::${CONTRACT_FUNCTIONS.TOGGLE_TEMPLATE_ACTIVE}`,
+      arguments: [
+        tx.object(templateId)
+      ]
+    });
+
+    return tx;
+  }
+}
+
 // Game Launchpad Transactions
 export class GameLaunchpadTransactions {
   static publishGame(

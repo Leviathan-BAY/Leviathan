@@ -79,7 +79,14 @@ export const CONTRACT_FUNCTIONS = {
   JOIN_GAME: "join_game",
   ROLL_DICE_AND_MOVE: "roll_dice_and_move",
 
-  // Card Game Maker - Card/token functions (for future card games)
+  // Card Game Maker - Template and instance functions
+  CREATE_CARD_GAME_TEMPLATE: "create_card_game_template",
+  CREATE_GAME_INSTANCE: "create_game_instance",
+  JOIN_GAME_INSTANCE: "join_game_instance",
+  SUBMIT_GAME_RESULT: "submit_game_result",
+  TOGGLE_TEMPLATE_ACTIVE: "toggle_template_active",
+
+  // Future Card Game Maker - Card/token functions (for advanced card games)
   CREATE_GAME_COMPONENTS: "create_game_components",
   CONFIGURE_SHARED_BOARD_CELL: "configure_shared_board_cell",
   CREATE_CARD: "create_card",
@@ -175,6 +182,13 @@ export const CONTRACT_EVENTS = {
   PIECE_MOVED: "PieceMoved",
   PIECE_DIED: "PieceDied",
   GAME_FINISHED: "GameFinished",
+
+  // Card Game Maker
+  CARD_TEMPLATE_CREATED: "TemplateCreated",
+  GAME_INSTANCE_CREATED: "GameInstanceCreated",
+  PLAYER_JOINED: "PlayerJoined",
+  CARD_GAME_STARTED: "GameStarted",
+  CARD_GAME_FINISHED: "GameFinished",
 
   // Game Launchpad
   GAME_PUBLISHED: "GamePublished",
