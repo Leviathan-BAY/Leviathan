@@ -2,7 +2,7 @@
 // These will be updated with actual deployed contract addresses
 
 // Main package ID - update this when contracts are deployed
-export const PACKAGE_ID = "0xe71741fe05d21fa99434b483ab7dab1627ea0e0f0aab604bf8acd28fd326033a";
+export const PACKAGE_ID = "0xa7ec19f3c248a293df3d6c0868e047d79a29bf6e08952bba0b135fd01a021827";
 
 // Object IDs for deployed contracts - update when deployed
 export const CONTRACT_OBJECTS = {
