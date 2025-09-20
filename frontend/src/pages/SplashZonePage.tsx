@@ -17,60 +17,8 @@ export function SplashZonePage() {
   const { data: publishedGames, isLoading } = useBoardGameTemplates();
   const { isAuthenticated: isDiscordConnected, getDisplayName, getAvatarUrl } = useDiscord();
   const client = useSuiClient();
-  const [registryGames, setRegistryGames] = useState<any[]>([]);
 
-  useEffect(() => {
-    async function fetchRegistryGames() {
-      try {
-        // 1️⃣ GameRegistry 읽기
-        const registry = await client.getObject({
-          id: REGISTRY_ID,
-          options: { showContent: true },
-        });
-
-        const fields = (registry.data?.content as any).fields;
-        const publishedIds: string[] = fields.published_games;
-
-        console.log("Published IDs:", publishedIds);
-
-        // 2️⃣ PublishedGame 오브젝트들 읽기
-        const results = await Promise.all(
-          publishedIds.map(async (id) => {
-            const obj0 = await client.getObject({
-              id,
-              options: { showContent: true },
-            });
-            const field0 = (obj0.data?.content as any).fields
-            const id0 = field0.package_id;
-            const obj = await client.getObject({
-              id : id0,
-              options: { showContent: true },
-            });
-            const pgFields = (obj.data?.content as any).fields;
-            return {
-              id,
-              name: pgFields.name,
-              description: pgFields.description,
-              type: "board",
-              gameType: field0.game_type === 1 ? "Board Game" : "Card Game",
-              packageId: id0,
-              stakeAmount: Number(pgFields.stack_amount),
-              creator: pgFields.creator,
-              createdAt: Number(pgFields.created_at),
-            };
-          })
-        );
-
-        setRegistryGames(results);
-      } catch (err) {
-        console.error("Failed to fetch registry games:", err);
-      }
-    }
-
-    fetchRegistryGames();
-  }, [client]);
-
-  // Game registry hooks
+  // Game registry hooks - now properly fetching from registry
   const {
     registeredGames,
     waitingInstances,
@@ -106,10 +54,10 @@ export function SplashZonePage() {
   // Combined game stats including registry data
   const gameStats = {
     data: {
-      totalGames: (registeredGames.data?.length || 0) + (publishedGames?.length || 0) + cardGameTemplates.length,
-      totalPlays: (registeredGames.data?.reduce((sum, game) => sum + game.total_games_played, 0) || 0) + (publishedGames?.reduce((sum, game) => sum + (game.totalGames || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalGames, 0),
-      totalValueStaked: (registeredGames.data?.reduce((sum, game) => sum + game.total_stakes_wagered, 0) || 0) + (publishedGames?.reduce((sum, game) => sum + (game.totalStaked || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalStaked, 0),
-      activeGames: (waitingInstances.data?.length || 0) + (publishedGames?.filter(game => game.isActive).length || 0) + cardGameInstances.length + boardGameInstances.length
+      totalGames: (registeredGames.data?.length || 0) + cardGameTemplates.length,
+      totalPlays: cardGameTemplates.reduce((sum, template) => sum + template.totalGames, 0),
+      totalValueStaked: cardGameTemplates.reduce((sum, template) => sum + template.totalStaked, 0),
+      activeGames: (waitingInstances.data?.length || 0) + cardGameInstances.length + boardGameInstances.length
     }
   };
 
@@ -127,32 +75,33 @@ export function SplashZonePage() {
     transition: "all 0.3s ease",
   };
 
-  const handlePlayBoardGame = async (templateId: string) => {
+  const handlePlayBoardGame = async (gameId: string) => {
     if (!currentAccount) {
       alert("Please connect your Sui wallet first to play games!");
       return;
     }
-    /*
-    if (!isDiscordConnected) {
-      alert("Please connect your Discord account to play with other players!");
-      return;
-    }*/
 
     try {
-      // Find the template to get stake amount
-      const template = registeredGames.data?.find(game => game.template_id === templateId);
-      const stakeAmount = template ? template.stake_amount / 1000000000 : 1; // Convert from mist to SUI
+      // Find the game from registry
+      const game = registeredGames.data?.find(g => g.id === gameId);
+      if (!game) {
+        alert("Game not found");
+        return;
+      }
 
-      // Create game instance on-chain
+      const stakeAmount = game.template?.stake_amount ?
+        Number(game.template.stake_amount) / 1000000000 : 1; // Convert from mist to SUI
+
+      // Create game instance on-chain using the package_id as template
       const result = await createGameInstance.mutateAsync({
-        templateId,
-        maxPlayers: 2, // Default to 2 players for board games
+        templateId: game.package_id,
+        maxPlayers: game.template?.pieces_per_player || 2,
         stakeAmount
       });
 
       // Create local instance for navigation
       const instance = boardGameInstanceManager.createInstance(
-        templateId,
+        game.package_id,
         currentAccount.address,
         getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
       );
@@ -179,7 +128,12 @@ export function SplashZonePage() {
     try {
       // Find the waiting instance to get stake amount
       const waitingInstance = waitingInstances.data?.find(instance => instance.instance_id === instanceId);
-      const stakeAmount = waitingInstance ? waitingInstance.stake_amount / 1000000000 : 1; // Convert from mist to SUI
+      if (!waitingInstance) {
+        alert("Game instance not found");
+        return;
+      }
+
+      const stakeAmount = waitingInstance.stake_amount / 1000000000; // Convert from mist to SUI
 
       // Join game instance on-chain
       const result = await joinGameInstance.mutateAsync({
@@ -187,19 +141,26 @@ export function SplashZonePage() {
         stakeAmount
       });
 
-      // Join local instance for navigation
-      const joinResult = boardGameInstanceManager.joinInstance(
-        instanceId,
-        currentAccount.address,
-        getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
-      );
-
-      if (joinResult.success) {
-        // Simulate payment confirmation for local state
-        boardGameInstanceManager.confirmPayment(instanceId, currentAccount.address);
-        navigate(`/board-game-lobby/${instanceId}`);
+      // Navigate to appropriate game page based on template
+      const template = registeredGames.data?.find(game => game.package_id === waitingInstance.template_id);
+      if (template?.game_type === 0) {
+        // Card game
+        navigate(`/card-game/${instanceId}`);
       } else {
-        alert(joinResult.error);
+        // Board game - try local instance first, fallback to board play
+        const joinResult = boardGameInstanceManager.joinInstance(
+          instanceId,
+          currentAccount.address,
+          getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
+        );
+
+        if (joinResult.success) {
+          boardGameInstanceManager.confirmPayment(instanceId, currentAccount.address);
+          navigate(`/board-game-lobby/${instanceId}`);
+        } else {
+          // Use a new board play page for registry games
+          navigate(`/board-play/${instanceId}`);
+        }
       }
     } catch (error) {
       console.error("Failed to join game instance:", error);
@@ -256,6 +217,38 @@ export function SplashZonePage() {
     }
   };
 
+  const handlePlayRegistryCardGame = async (gameId: string) => {
+    if (!currentAccount) {
+      alert("Please connect your Sui wallet first to play games!");
+      return;
+    }
+
+    try {
+      // Find the card game from registry
+      const game = registeredGames.data?.find(g => g.id === gameId && g.game_type === 0);
+      if (!game) {
+        alert("Card game not found");
+        return;
+      }
+
+      const stakeAmount = game.template?.stake_amount ?
+        Number(game.template.stake_amount) / 1000000000 : 1; // Convert from mist to SUI
+
+      // Create game instance on-chain using the package_id as template
+      const result = await createGameInstance.mutateAsync({
+        templateId: game.package_id,
+        maxPlayers: 2, // Default for card games
+        stakeAmount
+      });
+
+      // Navigate to card game lobby
+      navigate(`/card-game-lobby/${game.package_id}`);
+    } catch (error) {
+      console.error("Failed to create card game instance:", error);
+      alert("Failed to create card game instance. Please try again.");
+    }
+  };
+
   const handleJoinCardInstance = (instanceId: string) => {
     if (!currentAccount) {
       alert("Please connect your Sui wallet first to play games!");
@@ -281,8 +274,29 @@ export function SplashZonePage() {
   const getFilteredGames = () => {
     let allGames: any[] = [];
 
-    // Add registered board games from the registry
-    // Add card game templates
+    // Add registered games from the registry (both card and board)
+    if (registeredGames.data) {
+      const registryGames = registeredGames.data
+        .filter(game => filterType === "all" ||
+          (filterType === "card" && game.game_type === 0) ||
+          (filterType === "board" && game.game_type === 1))
+        .map(game => ({
+          id: game.id,
+          package_id: game.package_id,
+          type: game.game_type === 0 ? "card" : "board",
+          gameType: game.game_type === 0 ? "Card Game" : "Board Game",
+          name: game.template?.name || "Unknown Game",
+          description: game.template?.description || "No description",
+          stakeAmount: game.template?.stake_amount || 0,
+          totalGames: 0, // TODO: Add game statistics
+          piecesPerPlayer: game.template?.pieces_per_player || 2,
+          creator: game.creator,
+          created_at: game.created_at
+        }));
+      allGames = [...allGames, ...registryGames];
+    }
+
+    // Add card game templates (local/mock data)
     if (filterType === "all" || filterType === "card") {
       const cardGames = cardGameTemplates.map(template => ({
         ...template,
@@ -304,8 +318,6 @@ export function SplashZonePage() {
         game.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
-    allGames = [...registryGames, ...allGames];
 
     return allGames;
   };
@@ -414,7 +426,7 @@ export function SplashZonePage() {
       </Card>
 
       {/* Featured Game */}
-      {publishedGames && publishedGames.length > 0 && (
+      {registeredGames.data && registeredGames.data.length > 0 && (
         <Card
           style={{
             ...cardStyle,
@@ -435,35 +447,44 @@ export function SplashZonePage() {
                 ⭐ Featured
               </Badge>
               <Heading size="7" style={{ color: "white", marginBottom: "12px" }}>
-                {publishedGames[0].name}
+                {registeredGames.data[0].template?.name || "Unknown Game"}
               </Heading>
               <Text size="4" color="gray" style={{ marginBottom: "16px" }}>
-                {publishedGames[0].description}
+                {registeredGames.data[0].template?.description || "No description"}
               </Text>
               <Flex gap="4" align="center">
-                <Badge color="cyan">Board Game</Badge>
+                <Badge color="cyan">
+                  {registeredGames.data[0].game_type === 0 ? "Card Game" : "Board Game"}
+                </Badge>
                 <Text size="3" color="gray">
-                  {publishedGames[0].totalGames} games
+                  0 games
                 </Text>
                 <Text size="3" color="gray">
-                  Fee: {publishedGames[0].stakeAmount / 1000000000} SUI
+                  Fee: {((registeredGames.data[0].template?.stake_amount || 0) / 1000000000).toFixed(2)} SUI
                 </Text>
               </Flex>
             </Box>
             <Button
               size="4"
-              disabled={!currentAccount || !isDiscordConnected}
-              onClick={() => handlePlayGame(publishedGames[0].id)}
+              disabled={!currentAccount}
+              onClick={() => {
+                if (registeredGames.data[0].game_type === 0) {
+                  // Card game
+                  handlePlayRegistryCardGame(registeredGames.data[0].id);
+                } else {
+                  // Board game
+                  handlePlayBoardGame(registeredGames.data[0].id);
+                }
+              }}
               style={{
-                background: (currentAccount && isDiscordConnected) ? "var(--leviathan-sky-blue)" : "var(--gray-6)",
+                background: currentAccount ? "var(--leviathan-sky-blue)" : "var(--gray-6)",
                 color: "white",
                 padding: "16px 32px",
                 fontSize: "16px",
-                opacity: (currentAccount && isDiscordConnected) ? 1 : 0.6
+                opacity: currentAccount ? 1 : 0.6
               }}
             >
-              {!currentAccount ? "Connect Wallet" :
-               !isDiscordConnected ? "Connect Discord" : "Play Now"}
+              {!currentAccount ? "Connect Wallet" : "Create Game"}
             </Button>
           </Flex>
         </Card>
@@ -586,8 +607,15 @@ export function SplashZonePage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         if (game.type === "card") {
-                          handlePlayCardGame(game.id);
+                          if (game.package_id) {
+                            // This is a registry card game
+                            handlePlayRegistryCardGame(game.id);
+                          } else {
+                            // This is a local template
+                            handlePlayCardGame(game.id);
+                          }
                         } else {
+                          // Board game
                           handlePlayBoardGame(game.id);
                         }
                       }}

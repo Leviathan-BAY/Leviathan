@@ -422,11 +422,12 @@ export const useGameRegistry = () => {
   const client = useSuiClient();
 
   // TODO: Replace with actual registry object ID from deployment
-  const REGISTRY_ID = "0x1234567890abcdef1234567890abcdef12345678";
+  const REGISTRY_ID = "0xa60215e242a48991076ff8e97be8307457b567fb66bc47bd3ebfdcc681b46fcd";
 
   const registerGameTemplate = useMutation({
     mutationFn: async (data: {
       templateId: string;
+      gameType: number; // 0 = card, 1 = board
       registrationFee?: number; // Default to 1 SUI
     }) => {
       const fee = data.registrationFee || 1;
@@ -557,29 +558,70 @@ export const useGameRegistry = () => {
     }
   });
 
-  // Query all registered games
+  // Query all registered games from the registry
   const registeredGames = useQuery({
     queryKey: ['registered-games'],
     queryFn: async () => {
       try {
-        // TODO: Query actual registered games from the contract
-        // For now, return mock data
-        return MOCK_BOARD_GAME_TEMPLATES.map(template => ({
-          template_id: template.id,
-          template_package_id: template.id,
-          creator: "0x1234567890abcdef1234567890abcdef12345678",
-          name: template.name,
-          description: template.description,
-          stake_amount: template.stakeAmount,
-          pieces_per_player: template.piecesPerPlayer,
-          dice_min: template.diceMin,
-          dice_max: template.diceMax,
-          registered_at: Date.now() - Math.random() * 86400000,
-          total_instances_created: Math.floor(Math.random() * 50),
-          total_games_played: Math.floor(Math.random() * 200),
-          total_stakes_wagered: Math.floor(Math.random() * 10000),
-          is_active: true
-        }));
+        // Get the registry object to access published_games array
+        const registryObject = await client.getObject({
+          id: REGISTRY_ID,
+          options: { showContent: true }
+        });
+
+        if (!registryObject.data?.content || registryObject.data.content.dataType !== 'moveObject') {
+          console.error("Invalid registry object");
+          return [];
+        }
+
+        const registryFields = (registryObject.data.content as any).fields;
+        const publishedGameIds = registryFields.published_games || [];
+
+        // Fetch details for each published game
+        const gamePromises = publishedGameIds.map(async (gameId: string) => {
+          try {
+            const gameObject = await client.getObject({
+              id: gameId,
+              options: { showContent: true }
+            });
+
+            if (!gameObject.data?.content || gameObject.data.content.dataType !== 'moveObject') {
+              return null;
+            }
+
+            const gameFields = (gameObject.data.content as any).fields;
+
+            // Now fetch the actual template details using package_id
+            const templateObject = await client.getObject({
+              id: gameFields.package_id,
+              options: { showContent: true }
+            });
+
+            if (!templateObject.data?.content || templateObject.data.content.dataType !== 'moveObject') {
+              return null;
+            }
+
+            const templateFields = (templateObject.data.content as any).fields;
+
+            return {
+              id: gameId,
+              package_id: gameFields.package_id,
+              game_type: gameFields.game_type,
+              creator: gameFields.creator,
+              created_at: gameFields.created_at,
+              template: {
+                id: gameFields.package_id,
+                ...templateFields
+              }
+            };
+          } catch (error) {
+            console.error(`Failed to fetch game ${gameId}:`, error);
+            return null;
+          }
+        });
+
+        const games = await Promise.all(gamePromises);
+        return games.filter(game => game !== null);
       } catch (error) {
         console.error("Failed to fetch registered games:", error);
         return [];
@@ -593,30 +635,55 @@ export const useGameRegistry = () => {
     queryKey: ['waiting-instances'],
     queryFn: async () => {
       try {
-        // TODO: Query actual waiting instances from the contract
-        // For now, return mock data
-        return [
-          {
-            instance_id: "0xinstance1",
-            template_id: "template_1",
-            creator: "0x1234567890abcdef1234567890abcdef12345678",
-            max_players: 2,
-            current_players: 1,
-            stake_amount: 1000000000, // 1 SUI in mist
-            created_at: Date.now() - 300000, // 5 minutes ago
-            is_joinable: true
-          },
-          {
-            instance_id: "0xinstance2",
-            template_id: "template_2",
-            creator: "0xabcdef1234567890abcdef1234567890abcdef12",
-            max_players: 4,
-            current_players: 2,
-            stake_amount: 500000000, // 0.5 SUI in mist
-            created_at: Date.now() - 600000, // 10 minutes ago
-            is_joinable: true
+        // Get the registry object to access created_games array
+        const registryObject = await client.getObject({
+          id: REGISTRY_ID,
+          options: { showContent: true }
+        });
+
+        if (!registryObject.data?.content || registryObject.data.content.dataType !== 'moveObject') {
+          return [];
+        }
+
+        const registryFields = (registryObject.data.content as any).fields;
+        const createdGameIds = registryFields.created_games || [];
+
+        // Fetch details for each created game instance
+        const instancePromises = createdGameIds.map(async (instanceId: string) => {
+          try {
+            const instanceObject = await client.getObject({
+              id: instanceId,
+              options: { showContent: true }
+            });
+
+            if (!instanceObject.data?.content || instanceObject.data.content.dataType !== 'moveObject') {
+              return null;
+            }
+
+            const instanceFields = (instanceObject.data.content as any).fields;
+
+            return {
+              instance_id: instanceId,
+              template_id: instanceFields.template_id,
+              creator: instanceFields.creator,
+              players: instanceFields.players || [],
+              max_players: instanceFields.max_players,
+              current_players: instanceFields.players?.length || 0,
+              stake_amount: instanceFields.stake_amount,
+              created_at: instanceFields.created_at,
+              started: instanceFields.started || false,
+              ended: instanceFields.ended || false,
+              is_joinable: !instanceFields.started && !instanceFields.ended &&
+                          (instanceFields.players?.length || 0) < instanceFields.max_players
+            };
+          } catch (error) {
+            console.error(`Failed to fetch instance ${instanceId}:`, error);
+            return null;
           }
-        ];
+        });
+
+        const instances = await Promise.all(instancePromises);
+        return instances.filter(instance => instance !== null && instance.is_joinable);
       } catch (error) {
         console.error("Failed to fetch waiting instances:", error);
         return [];
@@ -630,11 +697,25 @@ export const useGameRegistry = () => {
     queryKey: ['registry-stats'],
     queryFn: async () => {
       try {
-        // TODO: Query actual registry stats from the contract
+        const registryObject = await client.getObject({
+          id: REGISTRY_ID,
+          options: { showContent: true }
+        });
+
+        if (!registryObject.data?.content || registryObject.data.content.dataType !== 'moveObject') {
+          return {
+            totalGames: 0,
+            activeInstances: 0,
+            totalFeesCollected: 0
+          };
+        }
+
+        const registryFields = (registryObject.data.content as any).fields;
+
         return {
-          totalGames: 42,
-          activeInstances: 7,
-          totalFeesCollected: 50 // in SUI
+          totalGames: registryFields.published_games?.length || 0,
+          activeInstances: registryFields.created_games?.length || 0,
+          totalFeesCollected: 0 // TODO: Add if this field exists in the registry
         };
       } catch (error) {
         console.error("Failed to fetch registry stats:", error);
