@@ -466,9 +466,7 @@ export const useGameRegistry = () => {
     }) => {
       const tx = GameRegistryTransactions.createGameInstance(
         REGISTRY_ID,
-        data.templateId,
-        data.maxPlayers,
-        TransactionUtils.suiToMist(data.stakeAmount)
+        data.templateId
       );
 
       return new Promise((resolve, reject) => {

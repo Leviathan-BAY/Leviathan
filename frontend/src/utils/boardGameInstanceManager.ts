@@ -141,17 +141,16 @@ export class BoardGameInstanceManager {
 
   // Instance management
   createInstance(templateId: string, creatorId: string, playerName: string): BoardGameInstance | null {
+    console.log(templateId);
     const template = this.getTemplate(templateId);
     if (!template) {
       return null;
     }
-
     const instanceId = `game-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const entryFee = template.stakeAmount / 1000000000; // Convert mist to SUI
 
     // Determine max players based on pieces per player (assume 4 players max for now)
     const maxPlayers = Math.min(4, Math.max(2, template.piecesPerPlayer));
-
     const creatorPlayer: BoardGamePlayer = {
       playerId: creatorId,
       playerName,

@@ -217,21 +217,15 @@ export class GameRegistryTransactions {
 
   static createGameInstance(
     registryId: string,
-    templateId: string,
-    maxPlayers: number,
-    stakeAmount: bigint
+    templateId: string
   ): Transaction {
     const tx = new Transaction();
 
-    const [stakeCoin] = tx.splitCoins(tx.gas, [stakeAmount]);
-
     tx.moveCall({
-      target: `${PACKAGE_ID}::game_registry::create_game_instance`,
+      target: `${PACKAGE_ID}::game_registry::register_created_game`,
       arguments: [
         tx.object(registryId),
         tx.pure.id(templateId),
-        tx.pure.u8(maxPlayers),
-        stakeCoin
       ]
     });
 

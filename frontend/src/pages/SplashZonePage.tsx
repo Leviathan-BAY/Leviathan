@@ -98,13 +98,27 @@ export function SplashZonePage() {
         maxPlayers: game.template?.pieces_per_player || 2,
         stakeAmount
       });
+      console.log(result);
 
       // Create local instance for navigation
-      const instance = boardGameInstanceManager.createInstance(
-        game.package_id,
-        currentAccount.address,
-        getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
-      );
+      const instanceId = result.digest; // 고유 ID 생성
+      console.log(instanceId);
+      const instance = {
+        id: instanceId,
+        templateId: game.package_id,
+        entryFee: Number(game.stake_amount) / 1_000_000_000, // mist → SUI 변환
+        currentPlayers: 1,
+        maxPlayers: 2, // 대략 최대 플레이어 수 설정
+        prizePool: 0,
+        status: "waiting",
+        players: [
+          {
+            playerId: currentAccount.address,
+            name: getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`,
+            hasPaid: false,
+          },
+        ],
+      };
 
       if (instance) {
         // Simulate payment confirmation for local state
