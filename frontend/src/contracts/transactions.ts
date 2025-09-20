@@ -191,35 +191,6 @@ export class BoardGameTemplateTransactions {
 
 }
 
-// Game Launchpad Transactions
-export class GameLaunchpadTransactions {
-  static publishGame(
-    launchpadId: string,
-    hSuiPayment: string, // hSui coin object ID
-    title: string,
-    description: string,
-    category: string,
-    walrusObjectId: string,
-    thumbnailUrl: string
-  ): Transaction {
-    const tx = new Transaction();
-
-    tx.moveCall({
-      target: `${PACKAGE_ID}::game_launchpad::${CONTRACT_FUNCTIONS.PUBLISH_GAME}`,
-      arguments: [
-        tx.object(launchpadId),
-        tx.object(hSuiPayment),
-        tx.pure.vector("u8", Array.from(new TextEncoder().encode(title))),
-        tx.pure.vector("u8", Array.from(new TextEncoder().encode(description))),
-        tx.pure.vector("u8", Array.from(new TextEncoder().encode(category))),
-        tx.pure.vector("u8", Array.from(new TextEncoder().encode(walrusObjectId))),
-        tx.pure.vector("u8", Array.from(new TextEncoder().encode(thumbnailUrl)))
-      ]
-    });
-
-    return tx;
-  }
-}
 
 // Game Registry Transactions (from game_registry.move)
 export class GameRegistryTransactions {
@@ -434,48 +405,6 @@ export class CardPokerGameTransactions {
         tx.object(templateId)
       ]
     });
-
-    return tx;
-  }
-
-  // Distribute prizes after game completion
-  static distributePrizes(
-    instanceId: string,
-    templateId: string,
-    winners: string[],
-    creatorFeeRecipient: string
-  ): Transaction {
-    const tx = new Transaction();
-
-    // Note: This assumes the Move contract has a distribute_prizes function
-    // In the current contract, prize distribution happens automatically in finalize()
-    // This is a placeholder for future enhanced prize distribution functionality
-    tx.moveCall({
-      target: `${PACKAGE_ID}::card_poker_game::distribute_prizes`,
-      arguments: [
-        tx.object(instanceId),
-        tx.object(templateId),
-        tx.pure.vector("address", winners),
-        tx.pure.address(creatorFeeRecipient)
-      ]
-    });
-
-    return tx;
-  }
-
-  // Manual payout function (if needed for complex prize distributions)
-  static manualPayout(
-    recipientAddress: string,
-    amount: bigint,
-    coinObjectId: string
-  ): Transaction {
-    const tx = new Transaction();
-
-    // Split coins for the payout amount
-    const [payoutCoin] = tx.splitCoins(tx.object(coinObjectId), [amount]);
-
-    // Transfer to recipient
-    tx.transferObjects([payoutCoin], recipientAddress);
 
     return tx;
   }
