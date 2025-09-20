@@ -1,7 +1,7 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator, Progress } from "@radix-ui/themes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   PlayIcon,
   ExitIcon,
@@ -19,13 +19,24 @@ export function BoardGameLobbyPage() {
   const navigate = useNavigate();
   const { getDisplayName, getAvatarUrl } = useDiscord();
 
-  const [instance, setInstance] = useState<BoardGameInstance | null>(null);
+  const location = useLocation();
+  const passedInstance = location.state?.instance as BoardGameInstance | null;
+
+  const [instance, setInstance] = useState<BoardGameInstance | null>(passedInstance);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [timeInLobby, setTimeInLobby] = useState(0);
 
-  const { startGame, joinGame } = useBoardGameInstance();
+  // const { startGame, joinGame } = useBoardGameInstance();
+
+  useEffect(() => {
+    if (!passedInstance) {
+      console.error("No instance passed from SplashZonePage");
+      navigate("/splash-zone");
+    }
+  }, [passedInstance, navigate]);
 
   const cardStyle = {
     background: "rgba(30, 41, 59, 0.4)",
@@ -43,6 +54,7 @@ export function BoardGameLobbyPage() {
     }
 
     const loadedInstance = boardGameInstanceManager.getInstance(instanceId);
+    
     if (!loadedInstance) {
       setError('Game lobby not found');
       return;
@@ -298,7 +310,9 @@ export function BoardGameLobbyPage() {
                 <Flex align="center" gap="3">
                   <Avatar
                     src={player.avatarUrl || getAvatarUrl(32) || undefined}
-                    fallback={player.playerName.charAt(0).toUpperCase()}
+                    fallback={(player.playerName?.charAt(0).toUpperCase() 
+                              || player.playerId.slice(2, 3).toUpperCase() 
+                              || "?")}
                     size="3"
                   />
 
@@ -315,7 +329,9 @@ export function BoardGameLobbyPage() {
                       )}
                     </Flex>
                     <Text size="2" color="gray">
-                      {player.walletAddress.slice(0, 8)}...{player.walletAddress.slice(-6)}
+                      {player.walletAddress
+                        ? `${player.walletAddress.slice(0, 8)}...${player.walletAddress.slice(-6)}`
+                        : "(no wallet)"}
                     </Text>
                   </Box>
 

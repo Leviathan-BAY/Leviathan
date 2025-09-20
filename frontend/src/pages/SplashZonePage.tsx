@@ -123,7 +123,9 @@ export function SplashZonePage() {
       if (instance) {
         // Simulate payment confirmation for local state
         boardGameInstanceManager.confirmPayment(instance.id, currentAccount.address);
-        navigate(`/board-game-lobby/${instance.id}`);
+        navigate(`/board-game-lobby/${instance.id}`, {
+          state: { instance }, // 여기서 instance 통째로 넘김
+        });
       } else {
         alert("Failed to create local game instance");
       }
