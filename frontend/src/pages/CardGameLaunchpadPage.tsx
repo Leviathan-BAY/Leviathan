@@ -1,9 +1,9 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Separator, TextField, Select, TextArea, Switch, Slider } from "@radix-ui/themes";
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { PlusIcon, Pencil2Icon, PlayIcon, PersonIcon, StackIcon, GearIcon, CheckIcon } from "@radix-ui/react-icons";
-import { useState } from "react";
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from "react-router-dom";
-import { CardPokerGameTransactions, TransactionUtils } from "../contracts/transactions";
+import { CardPokerGameTransactions, TransactionUtils, GameRegistryTransaction } from "../contracts/transactions";
 import { Transaction } from "@mysten/sui/transactions";
 
 // Card game configuration types
@@ -138,29 +138,72 @@ export function CardGameLaunchpadPage() {
       );
 
       // Execute the transaction
-      signAndExecuteTransaction(
-        { transaction: tx },
-        {
-          onSuccess: (result) => {
-            console.log("Template created successfully:", result);
-
-            // Extract template ID from transaction result
-            const templateId = extractTemplateIdFromResult(result);
-            if (templateId) {
-              setCreatedTemplateId(templateId);
-              alert(`Card game template created successfully! Template ID: ${templateId.slice(0, 8)}...`);
-              // Navigate to splash zone to see the created game
-              navigate('/splash-zone');
-            } else {
-              alert("Template created but couldn't retrieve ID");
-            }
-          },
-          onError: (error) => {
-            console.error("Failed to create template:", error);
-            alert(`Failed to create card game template: ${error.message}`);
+      const templateResult = await new Promise<any>((resolve, reject) => {
+        signAndExecuteTransaction(
+          { transaction: tx },
+          {
+            onSuccess: resolve,
+            onError: reject,
           }
-        }
+        );
+      });
+
+      console.log("Template created successfully:", templateResult);
+
+      const digest = templateResult.digest;
+      console.log('Transaction digest:', digest);
+
+      // Wait a moment for transaction to be processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Get transaction details to extract object changes
+      const txResult = await suiClient.getTransactionBlock({
+        digest,
+        options: { showObjectChanges: true },
+      });
+
+      // Extract template ID from objectChanges
+      const createdTemplate = txResult.objectChanges?.find(
+        (change: any) =>
+          change.type === 'created' &&
+          change.objectType.includes('CardPokerTemplate')
       );
+
+      if (createdTemplate) {
+        const templateId = createdTemplate.objectId;
+        console.log('Template created successfully, templateId:', templateId);
+        setCreatedTemplateId(templateId);
+
+        // Register the game template in the game registry (card game type = 1)
+        try {
+          const registryTx = GameRegistryTransaction.publishGame(templateId, 1);
+          await new Promise((resolve, reject) => {
+            signAndExecuteTransaction(
+              { transaction: registryTx },
+              {
+                onSuccess: (registryResult) => {
+                  console.log("Game registered in registry:", registryResult);
+                  resolve(registryResult);
+                },
+                onError: (error) => {
+                  console.warn("Failed to register in game registry:", error);
+                  // Don't fail the entire flow, just warn
+                  resolve(null);
+                }
+              }
+            );
+          });
+        } catch (error) {
+          console.warn("Registry registration failed:", error);
+          // Continue anyway
+        }
+
+        alert(`Card game template created successfully! Template ID: ${templateId.slice(0, 8)}...`);
+        // Navigate to splash zone to see the created game
+        navigate('/splash-zone');
+      } else {
+        alert("Template created but couldn't retrieve ID");
+      }
     } catch (error) {
       console.error("Failed to create card game:", error);
       alert("Failed to create card game template");
@@ -189,30 +232,6 @@ export function CardGameLaunchpadPage() {
     };
   };
 
-  // Helper function to extract template ID from transaction result
-  const extractTemplateIdFromResult = (result: any): string | null => {
-    try {
-      // Look for created objects in the transaction result
-      if (result.effects?.created) {
-        for (const created of result.effects.created) {
-          // Template objects should have a specific type pattern
-          if (created.objectType?.includes('CardPokerTemplate')) {
-            return created.objectId;
-          }
-        }
-      }
-
-      // Fallback: look for any created object (first one is likely the template)
-      if (result.effects?.created && result.effects.created.length > 0) {
-        return result.effects.created[0].objectId;
-      }
-
-      return null;
-    } catch (error) {
-      console.error("Error extracting template ID:", error);
-      return null;
-    }
-  };
 
   const renderStepIndicator = () => (
     <Flex gap="2" justify="center" mb="6">

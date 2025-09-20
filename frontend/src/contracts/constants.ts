@@ -2,14 +2,14 @@
 // These will be updated with actual deployed contract addresses
 
 // Main package ID - update this when contracts are deployed
-export const PACKAGE_ID = "0x0151e5d3c76f425c9004d55d1747821557f48253c71aa88d3240a7b010ff9b2f";
-export const REGISTRY_ID = "0x8ef81d58cfd804d07a6200314088bfa9c324cb75ecb7246fa545847b835a5809";
+export const PACKAGE_ID = "0xe4e0b9bb8d67e92fdec42fd8a601500aac6644050fc3171078f080f2afbd2eac";
+export const REGISTRY_ID = "0xa60215e242a48991076ff8e97be8307457b567fb66bc47bd3ebfdcc681b46fcd";
 // Object IDs for deployed contracts - update when deployed
 export const CONTRACT_OBJECTS = {
   // hSUI Vault object ID
-  HSUI_VAULT: "0xeac6161403e0c82a54ae5dfb2125ead64eaada834ee09e80e21e108d231e42fd",
+  HSUI_VAULT: "0x4e16852c3394dc5c6ebc10d2d28b9097aa57ecb3594db09e731dd87269213d08",
   // hSUI Admin Cap object ID
-  HSUI_ADMIN_CAP: "0xcf6f069de322507e795e3941ab6caf63bff4f40046dddd708fc5952ddae5d81b",
+  HSUI_ADMIN_CAP: "0x9b2003b47e0cae1de569a5f18bd6584006c4fd828944ceb1756c2f940c24d5a6",
   // Game Launchpad object ID (if exists)
 } as const;
 

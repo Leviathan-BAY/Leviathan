@@ -344,7 +344,7 @@ export class CardPokerGameTransactions {
     const tx = new Transaction();
 
     tx.moveCall({
-      target: `${PACKAGE_ID}::card_poker_game::create_card_poker_template`,
+      target: `${PACKAGE_ID}::card_poker_game_maker::create_card_poker_template`,
       arguments: [
         tx.pure.string(name),
         tx.pure.string(description),
@@ -363,14 +363,18 @@ export class CardPokerGameTransactions {
   }
 
   static createGameInstance(
-    templateId: string
+    templateId: string,
+    stakeAmount: bigint
   ): Transaction {
     const tx = new Transaction();
 
+    const [stakeCoin] = tx.splitCoins(tx.gas, [stakeAmount]);
+
     tx.moveCall({
-      target: `${PACKAGE_ID}::card_poker_game::create_game_instance`,
+      target: `${PACKAGE_ID}::card_poker_game_launcher::create_game_instance`,
       arguments: [
-        tx.object(templateId)
+        tx.object(templateId),
+        stakeCoin
       ]
     });
 
@@ -379,6 +383,7 @@ export class CardPokerGameTransactions {
 
   static joinGame(
     instanceId: string,
+    templateId: string,
     stakeAmount: bigint
   ): Transaction {
     const tx = new Transaction();
@@ -386,9 +391,10 @@ export class CardPokerGameTransactions {
     const [stakeCoin] = tx.splitCoins(tx.gas, [stakeAmount]);
 
     tx.moveCall({
-      target: `${PACKAGE_ID}::card_poker_game::join_game`,
+      target: `${PACKAGE_ID}::card_poker_game_launcher::join_game`,
       arguments: [
         tx.object(instanceId),
+        tx.object(templateId),
         stakeCoin
       ]
     });
@@ -404,7 +410,7 @@ export class CardPokerGameTransactions {
     const tx = new Transaction();
 
     tx.moveCall({
-      target: `${PACKAGE_ID}::card_poker_game::start_game`,
+      target: `${PACKAGE_ID}::card_poker_game_launcher::start_game`,
       arguments: [
         tx.object(instanceId),
         tx.object(templateId),
@@ -422,7 +428,7 @@ export class CardPokerGameTransactions {
     const tx = new Transaction();
 
     tx.moveCall({
-      target: `${PACKAGE_ID}::card_poker_game::finalize`,
+      target: `${PACKAGE_ID}::card_poker_game_launcher::finalize_game`,
       arguments: [
         tx.object(instanceId),
         tx.object(templateId)
