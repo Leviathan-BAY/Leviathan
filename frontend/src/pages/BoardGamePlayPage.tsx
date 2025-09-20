@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import {
@@ -13,7 +13,6 @@ import {
   Avatar
 } from '@radix-ui/themes';
 import {
-  PlayIcon,
   CubeIcon,
   HomeIcon,
   PersonIcon,
@@ -80,8 +79,7 @@ export function BoardGamePlayPage() {
   const client = useSuiClient();
 
   // Use templateId from URL params instead of hardcoded values
-  const TEMPLATE_ID = templateId || '0xa1a8da6c1b3bea68fe5f9d5c0d1a9fe6507664f77fd8ec7f84681a7287c2caef';
-  const HARDCODED_GAME_ID = '0xfddf360aa4c7b160c4a27c0239b56e0f941efbd20ae02a941f83bc576be0d659'; // 하드코딩된 게임 인스턴스 ID
+  const TEMPLATE_ID = templateId; 
 
   // Fetch actual template data from blockchain
   const { data: templateData, isLoading: templateLoading, error: templateError } = useBoardGameTemplateData(TEMPLATE_ID);
@@ -209,39 +207,50 @@ export function BoardGamePlayPage() {
       tx.moveCall({
         target: `${PACKAGE_ID}::board_game_launcher::start_game`,
         arguments: [
-          tx.object(TEMPLATE_ID), // 템플릿 object
+          tx.object(TEMPLATE_ID!), // 템플릿 object
           tx.splitCoins(tx.gas, [1_000_000_0])[0] // 1 SUI 스테이크
         ]
       });
 
-      signAndExecuteTransaction(
-        { transaction: tx },
-        {
-          onSuccess: (result) => {
-            console.log("Start game transaction successful:", result);
+      const templateResult = await new Promise<any>((resolve, reject) => {
+        signAndExecuteTransaction(
+          { transaction: tx },
+          {
+            onSuccess: resolve,
+            onError: reject,
+          }
+        );
+      });
 
-            // Extract game instance ID from transaction result
-            if (result?.effects?.created && result.effects.created.length > 0) {
-              const gameObject = result.effects.created.find((obj: any) =>
-                obj.owner && typeof obj.owner === 'object' && 'AddressOwner' in obj.owner
-              );
+      const digest = templateResult.digest;
+      console.log('Transaction digest:', digest);
 
-              if (gameObject) {
-                const newGameId = gameObject.reference.objectId;
-                console.log("Game ID extracted:", newGameId);
-                setGameId(newGameId);
-                setGameStatus('playing');
-              }
-            }
+      // 약간 대기 후 트랜잭션 결과 조회
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-            alert("Game started! You can now roll dice.");
-          },
-          onError: (error) => {
-            console.error("Start game transaction failed:", error);
-            alert("Transaction failed: " + error.message);
-          },
-        }
+      // 🆕 objectChanges에서 GameInstance objectId 추출
+      const txResult = await client.getTransactionBlock({
+        digest,
+        options: { showObjectChanges: true },
+      });
+
+      const createdGameInstance = txResult.objectChanges?.find(
+        (change: any) =>
+          change.type === 'created' &&
+          change.objectType.endsWith('::GameInstance')
       );
+
+      if (createdGameInstance) {
+        const gameInstanceId = createdGameInstance.objectId;
+        console.log('Created GameInstance ID:', gameInstanceId);
+
+        // 추출된 게임 인스턴스 ID를 상태로 저장
+        setGameId(gameInstanceId);
+        alert(`Game started! GameInstance ID: ${gameInstanceId.slice(0, 10)}...`);
+      } else {
+        console.error('GameInstance not found in transaction results');
+        alert('Game started but could not extract GameInstance ID');
+      }
 
     } catch (error) {
       console.error("Error creating transaction:", error);
@@ -250,7 +259,12 @@ export function BoardGamePlayPage() {
   };
 
   const handleDiceRoll = async () => {
-    if (!isMyTurn || gameStatus === 'finished' || !currentAccount) return;
+    if (!isMyTurn || gameStatus === 'finished' || !currentAccount || !gameId) {
+      if (!gameId) {
+        alert("Game instance not found. Please start a game first!");
+      }
+      return;
+    }
 
     try {
       // 블록체인 트랜잭션 생성
@@ -260,8 +274,8 @@ export function BoardGamePlayPage() {
       tx.moveCall({
         target: `${PACKAGE_ID}::board_game_launcher::roll_dice`,
         arguments: [
-          tx.object(HARDCODED_GAME_ID), // game_id
-          tx.object(TEMPLATE_ID),
+          tx.object(gameId), // 추출된 game instance ID 사용
+          tx.object(TEMPLATE_ID!),
           tx.object(RANDOM_OBJECT_ID),
         ]
       });

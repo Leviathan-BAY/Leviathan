@@ -90,7 +90,7 @@ const BoardGameLaunchpadPage: React.FC = () => {
     diceMin: 1,
     diceMax: 6,
     piecesPerPlayer: 3,
-    stakeAmount: 1, // SUI
+    stakeAmount: 0.001, // SUI
     board: new Array(GAME_LIMITS.MAX_BOARD_GAME_CELLS).fill(CELL_TYPES.UNSET),
     startPositions: [],
     finishPositions: [],
