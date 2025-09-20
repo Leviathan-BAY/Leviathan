@@ -10,7 +10,6 @@ import {
   StackIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  StarIcon,
   CheckIcon
 } from "@radix-ui/react-icons";
 import { gameInstanceManager, GameInstance } from "../utils/gameInstanceManager";

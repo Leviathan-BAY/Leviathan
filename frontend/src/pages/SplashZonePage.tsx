@@ -5,9 +5,10 @@ import { GAME_LIMITS } from "../contracts/constants";
 import { useDiscord } from "../hooks/useDiscord";
 import { MatchmakingModal } from "../components/MatchmakingModal";
 import { gameInstanceManager } from "../utils/gameInstanceManager";
+import { boardGameInstanceManager } from "../utils/boardGameInstanceManager";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { PlayIcon, PlusIcon, MagnifyingGlassIcon, StackIcon, CubeIcon } from "@radix-ui/react-icons";
+import { PlayIcon, PlusIcon, MagnifyingGlassIcon, StackIcon } from "@radix-ui/react-icons";
 
 export function SplashZonePage() {
   const currentAccount = useCurrentAccount();
@@ -20,16 +21,23 @@ export function SplashZonePage() {
   // Card game state
   const [cardGameTemplates, setCardGameTemplates] = useState<any[]>([]);
   const [cardGameInstances, setCardGameInstances] = useState<any[]>([]);
+
+  // Board game state
+  const [boardGameInstances, setBoardGameInstances] = useState<any[]>([]);
+
   const [activeTab, setActiveTab] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
-  // Load card game data
+  // Load card game and board game data
   useEffect(() => {
-    const templates = gameInstanceManager.getAllTemplates();
-    const instances = gameInstanceManager.getWaitingInstances();
-    setCardGameTemplates(templates);
-    setCardGameInstances(instances);
+    const cardTemplates = gameInstanceManager.getAllTemplates();
+    const cardInstances = gameInstanceManager.getWaitingInstances();
+    const boardInstances = boardGameInstanceManager.getWaitingInstances();
+
+    setCardGameTemplates(cardTemplates);
+    setCardGameInstances(cardInstances);
+    setBoardGameInstances(boardInstances);
   }, []);
 
   // Combined game stats
@@ -38,7 +46,7 @@ export function SplashZonePage() {
       totalGames: (publishedGames?.length || 0) + cardGameTemplates.length,
       totalPlays: (publishedGames?.reduce((sum, game) => sum + (game.totalGames || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalGames, 0),
       totalValueStaked: (publishedGames?.reduce((sum, game) => sum + (game.totalStaked || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalStaked, 0),
-      activeGames: (publishedGames?.filter(game => game.isActive).length || 0) + cardGameInstances.length
+      activeGames: (publishedGames?.filter(game => game.isActive).length || 0) + cardGameInstances.length + boardGameInstances.length
     }
   };
 
@@ -54,6 +62,55 @@ export function SplashZonePage() {
     padding: "24px",
     cursor: "pointer",
     transition: "all 0.3s ease",
+  };
+
+  const handlePlayBoardGame = (templateId: string) => {
+    if (!currentAccount) {
+      alert("Please connect your Sui wallet first to play games!");
+      return;
+    }
+    if (!isDiscordConnected) {
+      alert("Please connect your Discord account to play with other players!");
+      return;
+    }
+
+    // Create new board game instance
+    const instance = boardGameInstanceManager.createInstance(
+      templateId,
+      currentAccount.address,
+      getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
+    );
+
+    if (instance) {
+      // TODO: Execute blockchain transaction to start game
+      // Simulate payment confirmation for now
+      boardGameInstanceManager.confirmPayment(instance.id, currentAccount.address);
+      navigate(`/board-game-lobby/${instance.id}`);
+    } else {
+      alert("Failed to create game instance");
+    }
+  };
+
+  const handleJoinBoardInstance = (instanceId: string) => {
+    if (!currentAccount) {
+      alert("Please connect your Sui wallet first to play games!");
+      return;
+    }
+
+    const joinResult = boardGameInstanceManager.joinInstance(
+      instanceId,
+      currentAccount.address,
+      getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
+    );
+
+    if (joinResult.success) {
+      // TODO: Execute blockchain transaction
+      // Simulate payment confirmation
+      boardGameInstanceManager.confirmPayment(instanceId, currentAccount.address);
+      navigate(`/board-game-lobby/${instanceId}`);
+    } else {
+      alert(joinResult.error);
+    }
   };
 
   const handlePlayGame = (gameId: string) => {
@@ -400,7 +457,7 @@ export function SplashZonePage() {
                         fontSize: "48px",
                       }}
                     >
-                      {game.type === "card" ? <StackIcon width="48" height="48" color="white" /> : <CubeIcon width="48" height="48" color="white" />}
+                      {game.type === "card" ? <StackIcon width="48" height="48" color="white" /> : <Text size="8" style={{ fontSize: "48px", color: "white" }}>🎲</Text>}
                     </Box>
 
                     <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
@@ -444,7 +501,7 @@ export function SplashZonePage() {
                         if (game.type === "card") {
                           handlePlayCardGame(game.id);
                         } else {
-                          handlePlayGame(game.id);
+                          handlePlayBoardGame(game.id);
                         }
                       }}
                     >
@@ -548,8 +605,73 @@ export function SplashZonePage() {
 
           <Tabs.Content value="instances">
             <Grid columns="3" gap="6">
+              {/* Card Game Instances */}
               {cardGameInstances.map((instance) => (
-                <Card key={instance.id} style={cardStyle}>
+                <Card key={`card-${instance.id}`} style={cardStyle}>
+                  <Box
+                    style={{
+                      width: "100%",
+                      height: "120px",
+                      background: "linear-gradient(135deg, var(--purple-9), var(--violet-9))",
+                      borderRadius: "12px",
+                      marginBottom: "16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      position: "relative"
+                    }}
+                  >
+                    <StackIcon width="48" height="48" color="white" />
+                    <Badge
+                      size="1"
+                      style={{
+                        position: "absolute",
+                        top: "8px",
+                        right: "8px",
+                        background: "rgba(147, 51, 234, 0.9)"
+                      }}
+                    >
+                      Card Game
+                    </Badge>
+                  </Box>
+
+                  <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
+                    {gameInstanceManager.getTemplate(instance.templateId)?.config.title || "Unknown Game"}
+                  </Heading>
+
+                  <Text size="3" color="gray" style={{ marginBottom: "12px", minHeight: "40px" }}>
+                    Entry Fee: {instance.entryFee} SUI
+                  </Text>
+
+                  <Flex justify="between" align="center" style={{ marginBottom: "16px" }}>
+                    <Text size="2" color="gray">
+                      Players: {instance.currentPlayers}/{instance.maxPlayers}
+                    </Text>
+                    <Text size="2" style={{ color: "var(--purple-11)" }}>
+                      {instance.prizePool.toFixed(2)} SUI Pool
+                    </Text>
+                  </Flex>
+
+                  <Button
+                    size="3"
+                    disabled={!currentAccount || instance.currentPlayers >= instance.maxPlayers}
+                    style={{
+                      width: "100%",
+                      background: currentAccount && instance.currentPlayers < instance.maxPlayers ? "var(--purple-9)" : "var(--gray-6)",
+                      color: "white",
+                    }}
+                    onClick={() => handleJoinCardInstance(instance.id)}
+                  >
+                    <PlayIcon />
+                    {!currentAccount ? "Connect Wallet" :
+                     instance.currentPlayers >= instance.maxPlayers ? "Game Full" : "Join Game"}
+                  </Button>
+                </Card>
+              ))}
+
+              {/* Board Game Instances */}
+              {boardGameInstances.map((instance) => (
+                <Card key={`board-${instance.id}`} style={cardStyle}>
                   <Box
                     style={{
                       width: "100%",
@@ -563,7 +685,7 @@ export function SplashZonePage() {
                       position: "relative"
                     }}
                   >
-                    <PlayIcon width="48" height="48" color="white" />
+                    <Text size="8" style={{ fontSize: "48px", color: "white" }}>🎲</Text>
                     <Badge
                       size="1"
                       style={{
@@ -573,16 +695,16 @@ export function SplashZonePage() {
                         background: "rgba(34, 197, 94, 0.9)"
                       }}
                     >
-                      Waiting
+                      Board Game
                     </Badge>
                   </Box>
 
                   <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
-                    {gameInstanceManager.getTemplate(instance.templateId)?.config.title || "Unknown Game"}
+                    {boardGameInstanceManager.getTemplate(instance.templateId)?.name || "Unknown Game"}
                   </Heading>
 
                   <Text size="3" color="gray" style={{ marginBottom: "12px", minHeight: "40px" }}>
-                    Entry Fee: {instance.entryFee} SUI
+                    Entry Fee: {instance.entryFee.toFixed(2)} SUI
                   </Text>
 
                   <Flex justify="between" align="center" style={{ marginBottom: "16px" }}>
@@ -602,7 +724,7 @@ export function SplashZonePage() {
                       background: currentAccount && instance.currentPlayers < instance.maxPlayers ? "var(--green-9)" : "var(--gray-6)",
                       color: "white",
                     }}
-                    onClick={() => handleJoinCardInstance(instance.id)}
+                    onClick={() => handleJoinBoardInstance(instance.id)}
                   >
                     <PlayIcon />
                     {!currentAccount ? "Connect Wallet" :
@@ -611,7 +733,7 @@ export function SplashZonePage() {
                 </Card>
               ))}
 
-              {cardGameInstances.length === 0 && (
+              {cardGameInstances.length === 0 && boardGameInstances.length === 0 && (
                 <Card style={cardStyle}>
                   <Box style={{ textAlign: "center", padding: "40px" }}>
                     <PlayIcon width="48" height="48" color="var(--gray-8)" style={{ marginBottom: "16px" }} />

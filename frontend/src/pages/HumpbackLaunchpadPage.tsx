@@ -1,6 +1,6 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Separator } from "@radix-ui/themes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
-import { PlusIcon, Pencil2Icon, PlayIcon, StarIcon, PersonIcon, CubeIcon, StackIcon } from "@radix-ui/react-icons";
+import { PlusIcon, Pencil2Icon, PlayIcon, PersonIcon, StackIcon } from "@radix-ui/react-icons";
 import humpbackLogo from "../assets/images/Humpbacklogo.png";
 import { useBoardGameTemplate, useBoardGameTemplates } from "../contracts/hooks";
 import { GAME_LIMITS } from "../contracts/constants";
@@ -116,7 +116,7 @@ export function HumpbackLaunchpadPage() {
                 height: "64px",
                 margin: "0 auto 16px auto"
               }}>
-                <CubeIcon width="32" height="32" color="white" />
+                🎲
               </Box>
               <Heading size="5" style={{ color: "white" }} mb="3">Board Game</Heading>
               <Text size="3" color="gray" mb="4">
@@ -372,10 +372,10 @@ export function HumpbackLaunchpadPage() {
                   <Pencil2Icon /> Edit Game Rules
                 </Button>
                 <Button size="3" variant="outline">
-                  <CubeIcon /> Add Game Pieces
+                  🎲 Add Game Pieces
                 </Button>
                 <Button size="3" variant="outline">
-                  <StarIcon /> Set Special Effects
+                  ⭐ Set Special Effects
                 </Button>
                 <Button size="3" variant="outline">
                   <PlayIcon /> Test Game
@@ -480,7 +480,7 @@ export function HumpbackLaunchpadPage() {
               </Card>
             )) || (
               <Box style={{ textAlign: "center", gridColumn: "1 / -1", padding: "40px" }}>
-                <CubeIcon width="48" height="48" color="var(--gray-8)" style={{ marginBottom: "16px" }} />
+                <Text size="8" style={{ fontSize: "48px", marginBottom: "16px", display: "block" }}>🎲</Text>
                 <Text size="3" color="gray">No community games yet</Text>
                 <Text size="2" color="gray">Be the first to publish a game!</Text>
               </Box>

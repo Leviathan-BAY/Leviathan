@@ -1,6 +1,6 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Separator, TextField, Select, TextArea, Switch, Slider } from "@radix-ui/themes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
-import { PlusIcon, Pencil2Icon, PlayIcon, StarIcon, PersonIcon, StackIcon, GearIcon, CheckIcon } from "@radix-ui/react-icons";
+import { PlusIcon, Pencil2Icon, PlayIcon, PersonIcon, StackIcon, GearIcon, CheckIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -429,7 +429,7 @@ export function CardGameLaunchpadPage() {
   const renderStep4 = () => (
     <Card style={{ ...cardStyle, padding: "24px" }}>
       <Heading size="5" style={{ color: "white" }} mb="4">
-        <StarIcon style={{ marginRight: "8px" }} />
+        ⭐
         Launch Configuration
       </Heading>
 

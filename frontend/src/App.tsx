@@ -8,6 +8,8 @@ import { DiscordCallbackPage } from "./pages/DiscordCallbackPage";
 import BoardGameLaunchpadPage from "./pages/BoardGameLaunchpadPage";
 import { CardGameLaunchpadPage } from "./pages/CardGameLaunchpadPage";
 import { CardGamePage } from "./pages/CardGamePage";
+import { BoardGameLobbyPage } from "./pages/BoardGameLobbyPage";
+import { BoardGamePage } from "./pages/BoardGamePage";
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
           <Route path="board-game-launchpad" element={<BoardGameLaunchpadPage />} />
           <Route path="card-game-launchpad" element={<CardGameLaunchpadPage />} />
           <Route path="card-game/:instanceId" element={<CardGamePage />} />
+          <Route path="board-game-lobby/:instanceId" element={<BoardGameLobbyPage />} />
+          <Route path="board-game/:instanceId" element={<BoardGamePage />} />
           <Route path="splash-zone" element={<SplashZonePage />} />
           <Route path="auth/discord/callback" element={<DiscordCallbackPage />} />
         </Route>
