@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
 import {
   Flex,
@@ -23,6 +23,7 @@ import { BOARD_CELL_TYPES } from '../contracts/constants';
 import { Transaction } from '@mysten/sui/transactions';
 import { PACKAGE_ID } from '../contracts/constants';
 import { useSuiClient } from '@mysten/dapp-kit';
+import { useBoardGameTemplateData } from '../contracts/hooks';
 // Board cell types matching the Move contract
 const CELL_TYPES = {
   UNSET: -1,
@@ -74,15 +75,19 @@ interface Player {
 export function BoardGamePlayPage() {
   const currentAccount = useCurrentAccount();
   const navigate = useNavigate();
+  const { templateId } = useParams<{ templateId: string }>();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
   const client = useSuiClient();
 
-  // 하드코딩된 패키지 ID
-  const HARDCODED_PACKAGE_ID = '0xa1a8da6c1b3bea68fe5f9d5c0d1a9fe6507664f77fd8ec7f84681a7287c2caef';
-  const HARDCODED_GAME_ID = '0x56b600c2a79683ba8e549bd623317a193e8e9d60e04e4abf17457771501fe693'; // 하드코딩된 게임 인스턴스 ID
+  // Use templateId from URL params instead of hardcoded values
+  const TEMPLATE_ID = templateId || '0xa1a8da6c1b3bea68fe5f9d5c0d1a9fe6507664f77fd8ec7f84681a7287c2caef';
+  const HARDCODED_GAME_ID = '0xfddf360aa4c7b160c4a27c0239b56e0f941efbd20ae02a941f83bc576be0d659'; // 하드코딩된 게임 인스턴스 ID
 
-  // 하드코딩된 게임 데이터
-  const [GAME_ID, setGameId] = useState();
+  // Fetch actual template data from blockchain
+  const { data: templateData, isLoading: templateLoading, error: templateError } = useBoardGameTemplateData(TEMPLATE_ID);
+
+  // 게임 상태 데이터
+  const [gameId, setGameId] = useState<string | null>(null);
   const [gameBoard, setGameBoard] = useState<BoardCell[]>([]);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [lastDiceRoll, setLastDiceRoll] = useState<number | null>(null);
@@ -114,15 +119,18 @@ export function BoardGamePlayPage() {
     }
   ];
 
-  // 하드코딩된 게임 설정
-  const hardcodedTemplate = {
+  // 템플릿 데이터 (실제 블록체인에서 가져온 데이터 또는 기본값)
+  const gameTemplate = templateData || {
     name: 'Racing Track Game',
     description: 'A fun racing game with obstacles',
     diceMin: 1,
     diceMax: 6,
     piecesPerPlayer: 3,
     stakeAmount: 1000000000,
-    packageId: HARDCODED_PACKAGE_ID
+    boardCells: [],
+    startPositions: [0, 1, 2],
+    finishPositions: [97, 98, 99],
+    templateId: TEMPLATE_ID
   };
 
   const cardStyle = {
@@ -135,29 +143,30 @@ export function BoardGamePlayPage() {
 
   // Initialize board
   useEffect(() => {
+    if (templateLoading) return; // Wait for template data to load
+
     const cells: BoardCell[] = [];
 
     // Create 10x10 board (100 cells)
     for (let i = 0; i < 100; i++) {
       let cellType = CELL_TYPES.PASSABLE; // Default to passable
 
-      // Create a pattern like in the image
-      if (i < 3) {
-        cellType = CELL_TYPES.START; // Top row start positions (0, 1, 2)
-      } else if (i >= 97 && i < 100) {
-        cellType = CELL_TYPES.FINISH; // Bottom row finish positions (97, 98, 99)
-      } else if ([
-        // Brick wall pattern from the image
-        13, 14, 15, 16, // Row 1
-        23, 26, // Row 2 ends
-        33, 36, // Row 3 ends
-        43, 44, 45, 46, // Row 4
-        53, 56, // Row 5 ends
-        63, 66, // Row 6 ends
-        73, 74, 75, 76, // Row 7
-        83, 86  // Row 8 ends
-      ].includes(i)) {
-        cellType = CELL_TYPES.BLOCKED;
+      // Use template board configuration if available
+      if (gameTemplate.boardCells && gameTemplate.boardCells.length === 100) {
+        cellType = gameTemplate.boardCells[i];
+      } else {
+        // Fallback to default pattern
+        if (gameTemplate.startPositions.includes(i)) {
+          cellType = CELL_TYPES.START;
+        } else if (gameTemplate.finishPositions.includes(i)) {
+          cellType = CELL_TYPES.FINISH;
+        } else if ([
+          // Default brick wall pattern
+          13, 14, 15, 16, 23, 26, 33, 36, 43, 44, 45, 46,
+          53, 56, 63, 66, 73, 74, 75, 76, 83, 86
+        ].includes(i)) {
+          cellType = CELL_TYPES.BLOCKED;
+        }
       }
 
       cells.push({
@@ -167,11 +176,10 @@ export function BoardGamePlayPage() {
       });
     }
 
-    // Place player pieces at start positions
+    // Place player pieces at start positions from template
     hardcodedPlayers.forEach((player, playerIndex) => {
       player.pieces.forEach((piece, pieceIndex) => {
-        const startPositions = [0, 1, 2];
-        const startPosition = startPositions[pieceIndex % startPositions.length] || 0;
+        const startPosition = gameTemplate.startPositions[pieceIndex % gameTemplate.startPositions.length] || 0;
 
         const gamePiece: GamePiece = {
           id: playerIndex * 100 + pieceIndex, // Unique ID
@@ -186,7 +194,7 @@ export function BoardGamePlayPage() {
 
     setGameBoard(cells);
     setIsMyTurn(hardcodedPlayers[0]?.playerId === currentAccount?.address);
-  }, [currentAccount]);
+  }, [currentAccount, templateLoading, gameTemplate]);
 
   const handleStartGame = async () => {
     if (!currentAccount) {
@@ -201,7 +209,7 @@ export function BoardGamePlayPage() {
       tx.moveCall({
         target: `${PACKAGE_ID}::board_game_launcher::start_game`,
         arguments: [
-          tx.object(HARDCODED_PACKAGE_ID), // 템플릿 object
+          tx.object(TEMPLATE_ID), // 템플릿 object
           tx.splitCoins(tx.gas, [1_000_000_0])[0] // 1 SUI 스테이크
         ]
       });
@@ -211,8 +219,22 @@ export function BoardGamePlayPage() {
         {
           onSuccess: (result) => {
             console.log("Start game transaction successful:", result);
-            alert("Game started!");
-            // 게임 시작 시 추가 로직이 있다면 여기에서 state 업데이트 가능
+
+            // Extract game instance ID from transaction result
+            if (result?.effects?.created && result.effects.created.length > 0) {
+              const gameObject = result.effects.created.find((obj: any) =>
+                obj.owner && typeof obj.owner === 'object' && 'AddressOwner' in obj.owner
+              );
+
+              if (gameObject) {
+                const newGameId = gameObject.reference.objectId;
+                console.log("Game ID extracted:", newGameId);
+                setGameId(newGameId);
+                setGameStatus('playing');
+              }
+            }
+
+            alert("Game started! You can now roll dice.");
           },
           onError: (error) => {
             console.error("Start game transaction failed:", error);
@@ -234,12 +256,12 @@ export function BoardGamePlayPage() {
       // 블록체인 트랜잭션 생성
       const tx = new Transaction();
 
-      // Move 컨트랙트의 roll_dice_and_move 함수 호출
+      // Move 컨트랙트의 roll_dice 함수 호출
       tx.moveCall({
         target: `${PACKAGE_ID}::board_game_launcher::roll_dice`,
         arguments: [
           tx.object(HARDCODED_GAME_ID), // game_id
-          tx.object(HARDCODED_PACKAGE_ID),
+          tx.object(TEMPLATE_ID),
           tx.object(RANDOM_OBJECT_ID),
         ]
       });
@@ -270,7 +292,7 @@ export function BoardGamePlayPage() {
   // 로컬 게임 상태 시뮬레이션 (트랜잭션 성공 후 호출)
   const simulateLocalMove = () => {
     // Roll dice using template configuration
-    const diceResult = Math.floor(Math.random() * (hardcodedTemplate.diceMax - hardcodedTemplate.diceMin + 1)) + hardcodedTemplate.diceMin;
+    const diceResult = Math.floor(Math.random() * (gameTemplate.diceMax - gameTemplate.diceMin + 1)) + gameTemplate.diceMin;
     setLastDiceRoll(diceResult);
 
     // Find current player's piece
@@ -415,6 +437,28 @@ export function BoardGamePlayPage() {
 
   const currentPlayer = getCurrentPlayer();
 
+  // Show loading state while fetching template data
+  if (templateLoading) {
+    return (
+      <Flex align="center" justify="center" style={{ minHeight: "400px" }}>
+        <Text size="4" color="gray">
+          Loading game template...
+        </Text>
+      </Flex>
+    );
+  }
+
+  // Show error state if template failed to load
+  if (templateError) {
+    return (
+      <Flex align="center" justify="center" style={{ minHeight: "400px" }}>
+        <Text size="4" color="red">
+          Failed to load game template. Please try again.
+        </Text>
+      </Flex>
+    );
+  }
+
   return (
     <Flex direction="column" gap="6" style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
       {/* Header */}
@@ -422,7 +466,7 @@ export function BoardGamePlayPage() {
         <Flex justify="between" align="center">
           <Box>
             <Heading size="6" style={{ color: "white" }} mb="1">
-              {hardcodedTemplate.name}
+              {gameTemplate.name}
             </Heading>
             <Text size="3" color="gray">
               {gameStatus === 'finished'
@@ -434,7 +478,7 @@ export function BoardGamePlayPage() {
 
           <Flex align="center" gap="4">
             <Text size="2" color="gray">
-              Package ID: {HARDCODED_PACKAGE_ID.slice(0, 10)}...
+              Template ID: {TEMPLATE_ID.slice(0, 10)}...
             </Text>
             <Button
               size="2"
@@ -588,7 +632,7 @@ export function BoardGamePlayPage() {
                 <Box>
                   <Text size="2" color="gray">Dice Range</Text>
                   <Text size="3" style={{ color: "white" }} weight="bold">
-                    🎲 {hardcodedTemplate.diceMin}-{hardcodedTemplate.diceMax}
+                    🎲 {gameTemplate.diceMin}-{gameTemplate.diceMax}
                   </Text>
                 </Box>
 
@@ -600,9 +644,9 @@ export function BoardGamePlayPage() {
                 </Box>
 
                 <Box>
-                  <Text size="2" color="gray">Package ID</Text>
+                  <Text size="2" color="gray">Template ID</Text>
                   <Text size="1" style={{ color: "white", wordBreak: "break-all" }}>
-                    {HARDCODED_PACKAGE_ID}
+                    {TEMPLATE_ID}
                   </Text>
                 </Box>
 

@@ -187,7 +187,9 @@ export function BoardGameLobbyPage() {
 
     // If player just became ready, navigate to game play page
     if (newReadyState) {
-      navigate('/board-game-play');
+      // Use template ID from the instance
+      const templateId = instance.templateId || 'default-template';
+      navigate(`/board-game-play/${templateId}`);
     }
   };
 

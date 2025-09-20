@@ -56,7 +56,7 @@ export function HumpbackLaunchpadPage() {
     }
 
     try {
-      await createTemplate.mutateAsync({
+      const result = await createTemplate.mutateAsync({
         name: `My ${template} Game`,
         description: `A ${template} game created with Humpback Launchpad`,
         diceMin: 1,
@@ -64,6 +64,28 @@ export function HumpbackLaunchpadPage() {
         piecesPerPlayer: 3,
         stakeAmount: 1.0
       });
+
+      // Extract template ID from transaction result
+      console.log("Template creation result:", result);
+
+      // Look for created objects in the transaction result
+      if (result?.effects?.created && result.effects.created.length > 0) {
+        // Find the template object (usually the first created object)
+        const templateObject = result.effects.created.find((obj: any) =>
+          obj.owner && typeof obj.owner === 'object' && 'AddressOwner' in obj.owner
+        );
+
+        if (templateObject) {
+          const templateId = templateObject.reference.objectId;
+          console.log("Template ID extracted:", templateId);
+
+          // Navigate to the game play page with the template ID
+          navigate(`/board-game-play/${templateId}`);
+          return;
+        }
+      }
+
+      // Fallback if we can't extract the template ID
       alert("Game template creation successful! Check your wallet for the template object.");
     } catch (error) {
       console.error("Game template creation failed:", error);

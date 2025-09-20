@@ -225,6 +225,56 @@ export const useBoardGameTemplate = () => {
   };
 };
 
+// Hook to fetch template data
+export const useBoardGameTemplateData = (templateId: string | null) => {
+  const client = useSuiClient();
+
+  return useQuery({
+    queryKey: ['board-game-template-data', templateId],
+    queryFn: async () => {
+      if (!templateId) return null;
+
+      try {
+        // Fetch the template object from Sui blockchain
+        const templateObject = await client.getObject({
+          id: templateId,
+          options: {
+            showContent: true,
+            showType: true,
+          }
+        });
+
+        if (templateObject.data?.content && 'fields' in templateObject.data.content) {
+          const fields = templateObject.data.content.fields as any;
+
+          return {
+            id: templateId,
+            name: fields.name || 'Board Game',
+            description: fields.description || 'A custom board game',
+            diceMin: parseInt(fields.dice_min) || 1,
+            diceMax: parseInt(fields.dice_max) || 6,
+            piecesPerPlayer: parseInt(fields.pieces_per_player) || 3,
+            stakeAmount: parseInt(fields.stake_amount) || 1000000000,
+            boardCells: fields.board_cells || [],
+            startPositions: fields.start_positions || [0, 1, 2],
+            finishPositions: fields.finish_positions || [97, 98, 99],
+            creator: fields.creator,
+            isActive: fields.is_active || true,
+            createdAt: parseInt(fields.created_at) || Date.now()
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error('Error fetching template data:', error);
+        return null;
+      }
+    },
+    enabled: !!templateId,
+    refetchInterval: false, // Don't auto-refetch since template data is immutable
+  });
+};
+
 // Board Game Instance Hooks (for playing games)
 export const useBoardGameInstance = () => {
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();

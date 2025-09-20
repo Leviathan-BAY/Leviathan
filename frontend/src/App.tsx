@@ -24,7 +24,7 @@ function App() {
           <Route path="card-game-launchpad" element={<CardGameLaunchpadPage />} />
           <Route path="card-game/:instanceId" element={<CardGamePage />} />
           <Route path="board-game-lobby/:instanceId" element={<BoardGameLobbyPage />} />
-          <Route path="board-game-play" element={<BoardGamePlayPage />} />
+          <Route path="board-game-play/:templateId" element={<BoardGamePlayPage />} />
           <Route path="board-game/:instanceId" element={<BoardGamePage />} />
           <Route path="splash-zone" element={<SplashZonePage />} />
           <Route path="auth/discord/callback" element={<DiscordCallbackPage />} />
