@@ -1,5 +1,5 @@
-import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator } from "@radix-ui/themes";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator, TextField } from "@radix-ui/themes";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -15,11 +15,16 @@ import {
 import { gameInstanceManager, GameInstance } from "../utils/gameInstanceManager";
 import { Card as GameCard, Player, GameState, GameAction } from "../utils/cardGameEngine";
 import { PrizeDistributionManager, formatPrizeAmount } from "../utils/prizeDistribution";
+import { CardPokerGameTransactions, TransactionUtils } from "../contracts/transactions";
+import { useBlockchainSync, OnChainGameTemplate, OnChainGameInstance } from "../utils/blockchainSync";
 
 export function CardGamePage() {
   const { instanceId } = useParams<{ instanceId: string }>();
   const currentAccount = useCurrentAccount();
   const navigate = useNavigate();
+  const suiClient = useSuiClient();
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+  const blockchainSync = useBlockchainSync(suiClient);
 
   const [instance, setInstance] = useState<GameInstance | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -29,6 +34,17 @@ export function CardGamePage() {
   const [showActions, setShowActions] = useState(true);
   const [gameResult, setGameResult] = useState<any>(null);
   const [prizePreview, setPrizePreview] = useState<any>(null);
+
+  // Blockchain integration state
+  const [templateId, setTemplateId] = useState<string>("");
+  const [onChainInstanceId, setOnChainInstanceId] = useState<string>("");
+  const [onChainTemplate, setOnChainTemplate] = useState<OnChainGameTemplate | null>(null);
+  const [onChainInstance, setOnChainInstance] = useState<OnChainGameInstance | null>(null);
+  const [hasJoined, setHasJoined] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const cardStyle = {
     background: "rgba(30, 41, 59, 0.4)",
@@ -76,6 +92,27 @@ export function CardGamePage() {
     return () => clearInterval(interval);
   }, [instanceId, currentAccount, instance, gameResult]);
 
+  // Sync with blockchain when template ID changes
+  useEffect(() => {
+    if (templateId && blockchainSync.isValidObjectId(templateId)) {
+      syncTemplateData();
+    }
+  }, [templateId]);
+
+  // Sync with blockchain when instance ID changes
+  useEffect(() => {
+    if (onChainInstanceId && blockchainSync.isValidObjectId(onChainInstanceId)) {
+      syncInstanceData();
+    }
+  }, [onChainInstanceId]);
+
+  // Check if player has joined when currentAccount or instanceId changes
+  useEffect(() => {
+    if (currentAccount && onChainInstanceId) {
+      checkPlayerJoinedStatus();
+    }
+  }, [currentAccount, onChainInstanceId]);
+
   // Calculate prize preview
   useEffect(() => {
     if (instance) {
@@ -86,6 +123,220 @@ export function CardGamePage() {
       setPrizePreview(preview);
     }
   }, [instance, gameState?.winner]);
+
+  // Sync template data from blockchain
+  const syncTemplateData = async () => {
+    try {
+      setSyncError(null);
+      const template = await blockchainSync.getGameTemplate(templateId);
+      if (template) {
+        setOnChainTemplate(template);
+        console.log("Template synced:", template);
+      } else {
+        setSyncError("Template not found on blockchain");
+      }
+    } catch (error) {
+      console.error("Error syncing template:", error);
+      setSyncError("Failed to sync template data");
+    }
+  };
+
+  // Sync instance data from blockchain
+  const syncInstanceData = async () => {
+    try {
+      setSyncError(null);
+      const gameInstance = await blockchainSync.getGameInstance(onChainInstanceId);
+      if (gameInstance) {
+        setOnChainInstance(gameInstance);
+        setGameStarted(gameInstance.started);
+        console.log("Instance synced:", gameInstance);
+
+        // Update local game state based on blockchain data
+        updateLocalGameState(gameInstance);
+      } else {
+        setSyncError("Game instance not found on blockchain");
+      }
+    } catch (error) {
+      console.error("Error syncing instance:", error);
+      setSyncError("Failed to sync game instance data");
+    }
+  };
+
+  // Check if current player has joined the game
+  const checkPlayerJoinedStatus = async () => {
+    if (!currentAccount || !onChainInstanceId) return;
+
+    try {
+      const joined = await blockchainSync.hasPlayerJoined(onChainInstanceId, currentAccount.address);
+      setHasJoined(joined);
+    } catch (error) {
+      console.error("Error checking join status:", error);
+    }
+  };
+
+  // Update local game state based on blockchain data
+  const updateLocalGameState = (onChainData: OnChainGameInstance) => {
+    if (!gameState || !instance) return;
+
+    // Update game state with blockchain data
+    const updatedGameState = {
+      ...gameState,
+      phase: onChainData.ended ? 'finished' as const : onChainData.started ? 'playing' as const : 'waiting' as const,
+      winner: onChainData.winners.length > 0 ? onChainData.winners[0] : undefined
+    };
+
+    setGameState(updatedGameState);
+
+    // Update instance with pot value
+    const updatedInstance = {
+      ...instance,
+      prizePool: blockchainSync.mistToSui(onChainData.pot),
+      status: onChainData.ended ? 'finished' as const : onChainData.started ? 'playing' as const : 'waiting' as const
+    };
+
+    setInstance(updatedInstance);
+  };
+
+  // Create a new game instance on blockchain
+  const createGameInstance = async () => {
+    if (!currentAccount || !templateId) {
+      setError("Template ID required to create instance");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const tx = CardPokerGameTransactions.createGameInstance(templateId);
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: (result) => {
+            console.log("Game instance created:", result);
+
+            // Extract instance ID from transaction result
+            const newInstanceId = extractInstanceIdFromResult(result);
+            if (newInstanceId) {
+              setOnChainInstanceId(newInstanceId);
+              console.log("Game instance ID:", newInstanceId);
+            }
+          },
+          onError: (error) => {
+            console.error("Failed to create game instance:", error);
+            setError(`Failed to create game instance: ${error.message}`);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error creating game instance:", error);
+      setError("Failed to create game instance");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Join an existing game instance
+  const joinGame = async () => {
+    if (!currentAccount || !onChainInstanceId || !instance) {
+      setError("Missing required data to join game");
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      const stakeAmount = TransactionUtils.suiToMist(instance.entryFee);
+      const tx = CardPokerGameTransactions.joinGame(onChainInstanceId, stakeAmount);
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: (result) => {
+            console.log("Joined game successfully:", result);
+            setHasJoined(true);
+            setError(null);
+          },
+          onError: (error) => {
+            console.error("Failed to join game:", error);
+            setError(`Failed to join game: ${error.message}`);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error joining game:", error);
+      setError("Failed to join game");
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  // Start the game (after all players have joined)
+  const startGame = async () => {
+    if (!currentAccount || !onChainInstanceId || !templateId) {
+      setError("Missing required data to start game");
+      return;
+    }
+
+    setIsStarting(true);
+    try {
+      // In a real app, you'd get the random object ID from Sui
+      const randomObjectId = "0x8"; // Placeholder - use actual random object
+      const tx = CardPokerGameTransactions.startGame(onChainInstanceId, templateId, randomObjectId);
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: (result) => {
+            console.log("Game started successfully:", result);
+            setGameStarted(true);
+            setError(null);
+          },
+          onError: (error) => {
+            console.error("Failed to start game:", error);
+            setError(`Failed to start game: ${error.message}`);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error starting game:", error);
+      setError("Failed to start game");
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  // Finalize the game (determine winner and distribute prizes)
+  const finalizeGame = async () => {
+    if (!currentAccount || !onChainInstanceId || !templateId) {
+      setError("Missing required data to finalize game");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const tx = CardPokerGameTransactions.finalizeGame(onChainInstanceId, templateId);
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: (result) => {
+            console.log("Game finalized successfully:", result);
+
+            // Handle game completion
+            handleGameCompletion(gameState!);
+          },
+          onError: (error) => {
+            console.error("Failed to finalize game:", error);
+            setError(`Failed to finalize game: ${error.message}`);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error finalizing game:", error);
+      setError("Failed to finalize game");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleGameCompletion = async (finalGameState: GameState) => {
     if (!instance) return;
@@ -103,17 +354,39 @@ export function CardGamePage() {
         instance.id,
         finalGameState.winner,
         finalRankings,
-        'completed'
+        'completed',
+        signAndExecuteTransaction
       );
 
       setGameResult(result);
-
-      // TODO: Submit actual blockchain transaction here
       console.log('Game completed with result:', result);
 
     } catch (error) {
       console.error('Failed to complete game:', error);
       setError('Failed to process game completion');
+    }
+  };
+
+  // Helper function to extract instance ID from transaction result
+  const extractInstanceIdFromResult = (result: any): string | null => {
+    try {
+      if (result.effects?.created) {
+        for (const created of result.effects.created) {
+          if (created.objectType?.includes('PokerGameInstance')) {
+            return created.objectId;
+          }
+        }
+      }
+
+      // Fallback: look for any created object
+      if (result.effects?.created && result.effects.created.length > 0) {
+        return result.effects.created[0].objectId;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error extracting instance ID:", error);
+      return null;
     }
   };
 
@@ -389,11 +662,16 @@ export function CardGamePage() {
         <Flex justify="between" align="center">
           <Box>
             <Heading size="6" style={{ color: "white" }} mb="1">
-              {instance.templateId && gameInstanceManager.getTemplate(instance.templateId)?.config.title}
+              {onChainTemplate?.name || (instance.templateId && gameInstanceManager.getTemplate(instance.templateId)?.config.title) || "Poker Game"}
             </Heading>
             <Text size="3" color="gray">
               Turn {gameState?.turn || 1} • {instance.status}
             </Text>
+            {onChainTemplate && (
+              <Text size="2" color="gray">
+                {onChainTemplate.description}
+              </Text>
+            )}
           </Box>
 
           <Flex align="center" gap="4">
@@ -441,6 +719,147 @@ export function CardGamePage() {
             </Card>
           ))}
         </Grid>
+      )}
+
+      {/* Sync Error Display */}
+      {syncError && (
+        <Card style={{
+          ...cardStyle,
+          padding: "16px",
+          background: "rgba(239, 68, 68, 0.1)",
+          border: "1px solid rgba(239, 68, 68, 0.3)"
+        }}>
+          <Text size="2" style={{ color: "var(--red-11)" }}>
+            Blockchain Sync Error: {syncError}
+          </Text>
+        </Card>
+      )}
+
+      {/* Blockchain Status */}
+      {(onChainTemplate || onChainInstance) && (
+        <Card style={{ ...cardStyle, padding: "16px" }}>
+          <Heading size="3" style={{ color: "white" }} mb="3">Blockchain Status</Heading>
+          <Grid columns="2" gap="3">
+            {onChainTemplate && (
+              <>
+                <Box>
+                  <Text size="2" color="gray">Template</Text>
+                  <Text size="2" style={{ color: "var(--green-11)" }} weight="bold">
+                    ✓ Synced ({blockchainSync.formatAddress(templateId)})
+                  </Text>
+                </Box>
+                <Box>
+                  <Text size="2" color="gray">Cards per Hand</Text>
+                  <Text size="2" style={{ color: "white" }} weight="bold">
+                    {onChainTemplate.cardsPerHand}
+                  </Text>
+                </Box>
+              </>
+            )}
+            {onChainInstance && (
+              <>
+                <Box>
+                  <Text size="2" color="gray">Instance</Text>
+                  <Text size="2" style={{ color: "var(--green-11)" }} weight="bold">
+                    ✓ Synced ({blockchainSync.formatAddress(onChainInstanceId)})
+                  </Text>
+                </Box>
+                <Box>
+                  <Text size="2" color="gray">Players Joined</Text>
+                  <Text size="2" style={{ color: "white" }} weight="bold">
+                    {onChainInstance.players.length}
+                  </Text>
+                </Box>
+              </>
+            )}
+          </Grid>
+        </Card>
+      )}
+
+      {/* Blockchain Actions */}
+      {!onChainInstanceId && (
+        <Card style={{ ...cardStyle, padding: "16px" }}>
+          <Heading size="3" style={{ color: "white" }} mb="3">Game Setup</Heading>
+          <Text size="2" color="gray" mb="3">
+            Create a blockchain game instance to play with real stakes
+          </Text>
+          <Flex gap="2">
+            <TextField.Root
+              placeholder="Template ID (0x...)"
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <Button
+              onClick={createGameInstance}
+              disabled={!templateId || isLoading}
+              size="2"
+            >
+              {isLoading ? "Creating..." : "Create Instance"}
+            </Button>
+          </Flex>
+          {onChainTemplate && (
+            <Box mt="2" p="2" style={{
+              background: "rgba(147, 51, 234, 0.1)",
+              borderRadius: "8px",
+              border: "1px solid rgba(147, 51, 234, 0.3)"
+            }}>
+              <Text size="2" style={{ color: "var(--purple-11)" }}>
+                Template loaded: {onChainTemplate.name} - {onChainTemplate.cardsPerHand} cards per hand
+              </Text>
+            </Box>
+          )}
+        </Card>
+      )}
+
+      {onChainInstanceId && !hasJoined && (
+        <Card style={{ ...cardStyle, padding: "16px" }}>
+          <Heading size="3" style={{ color: "white" }} mb="3">Join Game</Heading>
+          <Text size="2" color="gray" mb="3">
+            Instance ID: {onChainInstanceId.slice(0, 16)}...
+          </Text>
+          <Button
+            onClick={joinGame}
+            disabled={isJoining || !instance}
+            size="2"
+          >
+            {isJoining ? "Joining..." : `Join Game (${instance?.entryFee || 0} SUI)`}
+          </Button>
+        </Card>
+      )}
+
+      {hasJoined && !gameStarted && (
+        <Card style={{ ...cardStyle, padding: "16px" }}>
+          <Heading size="3" style={{ color: "white" }} mb="3">Start Game</Heading>
+          <Text size="2" color="gray" mb="3">
+            Waiting for all players to join. Click start when ready.
+          </Text>
+          <Button
+            onClick={startGame}
+            disabled={isStarting}
+            size="2"
+            style={{ background: "linear-gradient(135deg, var(--green-9), var(--emerald-9))" }}
+          >
+            {isStarting ? "Starting..." : "Start Game"}
+          </Button>
+        </Card>
+      )}
+
+      {gameStarted && gameState?.phase === 'finished' && (
+        <Card style={{ ...cardStyle, padding: "16px" }}>
+          <Heading size="3" style={{ color: "white" }} mb="3">Finalize Game</Heading>
+          <Text size="2" color="gray" mb="3">
+            Game finished! Finalize to determine winner and distribute prizes.
+          </Text>
+          <Button
+            onClick={finalizeGame}
+            disabled={isLoading}
+            size="2"
+            style={{ background: "linear-gradient(135deg, var(--purple-9), var(--violet-9))" }}
+          >
+            {isLoading ? "Finalizing..." : "Finalize & Distribute Prizes"}
+          </Button>
+        </Card>
       )}
 
       {/* Game Actions */}

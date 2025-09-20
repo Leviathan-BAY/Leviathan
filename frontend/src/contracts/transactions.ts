@@ -431,6 +431,48 @@ export class CardPokerGameTransactions {
 
     return tx;
   }
+
+  // Distribute prizes after game completion
+  static distributePrizes(
+    instanceId: string,
+    templateId: string,
+    winners: string[],
+    creatorFeeRecipient: string
+  ): Transaction {
+    const tx = new Transaction();
+
+    // Note: This assumes the Move contract has a distribute_prizes function
+    // In the current contract, prize distribution happens automatically in finalize()
+    // This is a placeholder for future enhanced prize distribution functionality
+    tx.moveCall({
+      target: `${PACKAGE_ID}::card_poker_game::distribute_prizes`,
+      arguments: [
+        tx.object(instanceId),
+        tx.object(templateId),
+        tx.pure.vector("address", winners),
+        tx.pure.address(creatorFeeRecipient)
+      ]
+    });
+
+    return tx;
+  }
+
+  // Manual payout function (if needed for complex prize distributions)
+  static manualPayout(
+    recipientAddress: string,
+    amount: bigint,
+    coinObjectId: string
+  ): Transaction {
+    const tx = new Transaction();
+
+    // Split coins for the payout amount
+    const [payoutCoin] = tx.splitCoins(tx.object(coinObjectId), [amount]);
+
+    // Transfer to recipient
+    tx.transferObjects([payoutCoin], recipientAddress);
+
+    return tx;
+  }
 }
 export const GameRegistryTransaction = {
   publishGame: (templateId: string, isBoardGame: number) => {

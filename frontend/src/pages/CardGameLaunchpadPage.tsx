@@ -1,8 +1,10 @@
 import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Separator, TextField, Select, TextArea, Switch, Slider } from "@radix-ui/themes";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { PlusIcon, Pencil2Icon, PlayIcon, PersonIcon, StackIcon, GearIcon, CheckIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CardPokerGameTransactions, TransactionUtils } from "../contracts/transactions";
+import { Transaction } from "@mysten/sui/transactions";
 
 // Card game configuration types
 interface CardGameConfig {
@@ -53,9 +55,12 @@ const defaultConfig: CardGameConfig = {
 export function CardGameLaunchpadPage() {
   const currentAccount = useCurrentAccount();
   const navigate = useNavigate();
+  const suiClient = useSuiClient();
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
   const [config, setConfig] = useState<CardGameConfig>(defaultConfig);
   const [currentStep, setCurrentStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
+  const [createdTemplateId, setCreatedTemplateId] = useState<string>("");
 
   const cardStyle = {
     background: "rgba(30, 41, 59, 0.4)",
@@ -91,18 +96,121 @@ export function CardGameLaunchpadPage() {
       return;
     }
 
+    if (!config.title.trim()) {
+      alert("Please enter a game title");
+      return;
+    }
+
+    // Additional validation
+    if (config.deckComposition.suits < 1 || config.deckComposition.ranksPerSuit < 1) {
+      alert("Invalid deck configuration");
+      return;
+    }
+
+    if (config.initialCardsInHand < 1) {
+      alert("Players must have at least 1 card in hand");
+      return;
+    }
+
     setIsCreating(true);
     try {
-      // TODO: Implement actual contract call
-      console.log("Creating card game with config:", config);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Mock delay
-      alert("Card game template created successfully!");
-      navigate('/splash-zone');
+      // Map frontend config to Move contract parameters
+      const moveConfig = mapConfigToMoveParams(config);
+
+      // Debug logging
+      console.log("Move config parameters:", moveConfig);
+      console.log("Launch fee (SUI):", config.launchFee);
+      console.log("Stake amount (MIST):", TransactionUtils.suiToMist(0.01));
+      console.log("Launch fee (MIST):", TransactionUtils.suiToMist(config.launchFee));
+
+      // Create the transaction
+      const tx = CardPokerGameTransactions.createCardPokerTemplate(
+        moveConfig.name,
+        moveConfig.description,
+        moveConfig.metaUri,
+        moveConfig.numSuits,
+        moveConfig.ranksPerSuit,
+        moveConfig.cardsPerHand,
+        moveConfig.combinationSize,
+        moveConfig.victoryMode,
+        TransactionUtils.suiToMist(0.01), // stake_amount (minimum stake for testing)
+        TransactionUtils.suiToMist(config.launchFee)  // launch_fee
+      );
+
+      // Execute the transaction
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: (result) => {
+            console.log("Template created successfully:", result);
+
+            // Extract template ID from transaction result
+            const templateId = extractTemplateIdFromResult(result);
+            if (templateId) {
+              setCreatedTemplateId(templateId);
+              alert(`Card game template created successfully! Template ID: ${templateId.slice(0, 8)}...`);
+              // Navigate to splash zone to see the created game
+              navigate('/splash-zone');
+            } else {
+              alert("Template created but couldn't retrieve ID");
+            }
+          },
+          onError: (error) => {
+            console.error("Failed to create template:", error);
+            alert(`Failed to create card game template: ${error.message}`);
+          }
+        }
+      );
     } catch (error) {
       console.error("Failed to create card game:", error);
       alert("Failed to create card game template");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Helper function to map frontend config to Move contract parameters
+  const mapConfigToMoveParams = (config: CardGameConfig) => {
+    // Map win condition to victory mode
+    let victoryMode = 0; // Default to poker hand evaluation
+    if (config.winCondition === 'closest_sum') {
+      victoryMode = 1; // High card sum mode
+    }
+
+    return {
+      name: config.title,
+      description: config.description || "Custom card game created with Leviathan",
+      metaUri: `leviathan://game/${Date.now()}`, // Placeholder URI
+      numSuits: config.deckComposition.suits,
+      ranksPerSuit: config.deckComposition.ranksPerSuit,
+      cardsPerHand: config.initialCardsInHand,
+      combinationSize: Math.min(5, config.initialCardsInHand), // Standard poker combination size
+      victoryMode,
+    };
+  };
+
+  // Helper function to extract template ID from transaction result
+  const extractTemplateIdFromResult = (result: any): string | null => {
+    try {
+      // Look for created objects in the transaction result
+      if (result.effects?.created) {
+        for (const created of result.effects.created) {
+          // Template objects should have a specific type pattern
+          if (created.objectType?.includes('CardPokerTemplate')) {
+            return created.objectId;
+          }
+        }
+      }
+
+      // Fallback: look for any created object (first one is likely the template)
+      if (result.effects?.created && result.effects.created.length > 0) {
+        return result.effects.created[0].objectId;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error extracting template ID:", error);
+      return null;
     }
   };
 
@@ -486,13 +594,22 @@ export function CardGameLaunchpadPage() {
               <Button
                 size="3"
                 style={{
-                  background: "linear-gradient(135deg, var(--purple-9), var(--violet-9))",
+                  background: createdTemplateId
+                    ? "linear-gradient(135deg, var(--green-9), var(--emerald-9))"
+                    : "linear-gradient(135deg, var(--purple-9), var(--violet-9))",
                   width: "100%"
                 }}
                 onClick={handleCreateGame}
-                disabled={!currentAccount || isCreating || !config.title}
+                disabled={!currentAccount || isCreating || !config.title || !!createdTemplateId}
               >
-                {isCreating ? "Creating..." : !currentAccount ? "Connect Wallet" : "Deploy Game Template"}
+                {createdTemplateId
+                  ? `✓ Template Created (${createdTemplateId.slice(0, 8)}...)`
+                  : isCreating
+                    ? "Creating..."
+                    : !currentAccount
+                      ? "Connect Wallet"
+                      : "Deploy Game Template"
+                }
               </Button>
             </Box>
           </Grid>
