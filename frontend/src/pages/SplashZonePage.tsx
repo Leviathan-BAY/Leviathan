@@ -1,26 +1,45 @@
-import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator } from "@radix-ui/themes";
+import { Flex, Box, Heading, Text, Card, Button, Grid, Badge, Avatar, Separator, Tabs, TextField, Select } from "@radix-ui/themes";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useBoardGameTemplates } from "../contracts/hooks";
 import { GAME_LIMITS } from "../contracts/constants";
 import { useDiscord } from "../hooks/useDiscord";
 import { MatchmakingModal } from "../components/MatchmakingModal";
-import { useState } from "react";
+import { gameInstanceManager } from "../utils/gameInstanceManager";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { PlayIcon, PlusIcon, MagnifyingGlassIcon, StackIcon, CubeIcon } from "@radix-ui/react-icons";
 
 export function SplashZonePage() {
   const currentAccount = useCurrentAccount();
+  const navigate = useNavigate();
   const { data: publishedGames, isLoading } = useBoardGameTemplates();
   const { isAuthenticated: isDiscordConnected, getDisplayName, getAvatarUrl } = useDiscord();
   const [matchmakingOpen, setMatchmakingOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<{id: string, title: string, maxPlayers: number} | null>(null);
 
-  // Mock game stats for now
-  const gameStats = { 
-    data: { 
-      totalGames: publishedGames?.length || 0, 
-      totalPlays: publishedGames?.reduce((sum, game) => sum + (game.totalGames || 0), 0) || 0,
-      totalValueStaked: publishedGames?.reduce((sum, game) => sum + (game.totalStaked || 0), 0) || 0,
-      activeGames: publishedGames?.filter(game => game.isActive).length || 0
-    } 
+  // Card game state
+  const [cardGameTemplates, setCardGameTemplates] = useState<any[]>([]);
+  const [cardGameInstances, setCardGameInstances] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
+
+  // Load card game data
+  useEffect(() => {
+    const templates = gameInstanceManager.getAllTemplates();
+    const instances = gameInstanceManager.getWaitingInstances();
+    setCardGameTemplates(templates);
+    setCardGameInstances(instances);
+  }, []);
+
+  // Combined game stats
+  const gameStats = {
+    data: {
+      totalGames: (publishedGames?.length || 0) + cardGameTemplates.length,
+      totalPlays: (publishedGames?.reduce((sum, game) => sum + (game.totalGames || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalGames, 0),
+      totalValueStaked: (publishedGames?.reduce((sum, game) => sum + (game.totalStaked || 0), 0) || 0) + cardGameTemplates.reduce((sum, template) => sum + template.totalStaked, 0),
+      activeGames: (publishedGames?.filter(game => game.isActive).length || 0) + cardGameInstances.length
+    }
   };
 
   const getGameById = (gameId: string) => {
@@ -55,6 +74,96 @@ export function SplashZonePage() {
       });
       setMatchmakingOpen(true);
     }
+  };
+
+  const handlePlayCardGame = (templateId: string) => {
+    if (!currentAccount) {
+      alert("Please connect your Sui wallet first to play games!");
+      return;
+    }
+
+    const template = cardGameTemplates.find(t => t.id === templateId);
+    if (!template) return;
+
+    // Create new instance
+    const instance = gameInstanceManager.createInstance(templateId, currentAccount.address, 1.0); // 1 SUI entry fee
+    if (instance) {
+      // Join the instance
+      const joinResult = gameInstanceManager.joinInstance(
+        instance.id,
+        currentAccount.address,
+        getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
+      );
+
+      if (joinResult.success) {
+        // Simulate payment confirmation (in real app, this would be a blockchain transaction)
+        gameInstanceManager.confirmPayment(instance.id, currentAccount.address);
+        navigate(`/card-game/${instance.id}`);
+      } else {
+        alert(joinResult.error);
+      }
+    }
+  };
+
+  const handleJoinCardInstance = (instanceId: string) => {
+    if (!currentAccount) {
+      alert("Please connect your Sui wallet first to play games!");
+      return;
+    }
+
+    const joinResult = gameInstanceManager.joinInstance(
+      instanceId,
+      currentAccount.address,
+      getDisplayName() || `Player ${currentAccount.address.slice(0, 6)}`
+    );
+
+    if (joinResult.success) {
+      // Simulate payment confirmation
+      gameInstanceManager.confirmPayment(instanceId, currentAccount.address);
+      navigate(`/card-game/${instanceId}`);
+    } else {
+      alert(joinResult.error);
+    }
+  };
+
+  // Filter and search logic
+  const getFilteredGames = () => {
+    let allGames: any[] = [];
+
+    // Add board games
+    if (filterType === "all" || filterType === "board") {
+      const boardGames = (publishedGames || []).map(game => ({
+        ...game,
+        type: "board",
+        gameType: "Board Game"
+      }));
+      allGames = [...allGames, ...boardGames];
+    }
+
+    // Add card game templates
+    if (filterType === "all" || filterType === "card") {
+      const cardGames = cardGameTemplates.map(template => ({
+        ...template,
+        type: "card",
+        gameType: "Card Game",
+        name: template.config.title,
+        description: template.config.description,
+        stakeAmount: template.config.launchFee * 1000000000, // Convert to mist
+        totalGames: template.totalGames,
+        piecesPerPlayer: template.config.numPlayers
+      }));
+      allGames = [...allGames, ...cardGames];
+    }
+
+    // Apply search filter
+    if (searchTerm) {
+      allGames = allGames.filter(game =>
+        game.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        game.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return allGames;
   };
 
   return (
@@ -216,113 +325,308 @@ export function SplashZonePage() {
         </Card>
       )}
 
-      {/* Games Grid */}
+      {/* Games Section */}
       <Box>
-        <Heading size="6" style={{ color: "white", marginBottom: "24px" }}>
-          All Games
-        </Heading>
+        <Flex justify="between" align="center" mb="6">
+          <Heading size="6" style={{ color: "white" }}>
+            Browse Games
+          </Heading>
+          <Flex gap="3" align="center">
+            <TextField.Root
+              size="2"
+              placeholder="Search games..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ width: "200px" }}
+            >
+              <TextField.Slot>
+                <MagnifyingGlassIcon height="16" width="16" />
+              </TextField.Slot>
+            </TextField.Root>
 
-        {isLoading ? (
-          <Text size="3" color="gray">Loading games...</Text>
-        ) : publishedGames && publishedGames.length > 0 ? (
-          <Grid columns="3" gap="6">
-            {publishedGames.map((game) => (
-              <Card
-                key={game.id}
-                style={{
-                  ...cardStyle,
-                  transition: "all 0.3s ease",
-                }}
-                className="game-card"
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-4px)";
-                  e.currentTarget.style.boxShadow = "0 20px 40px rgba(56, 189, 248, 0.15)";
-                  e.currentTarget.style.border = "1px solid rgba(56, 189, 248, 0.3)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                  e.currentTarget.style.border = "1px solid rgba(148, 163, 184, 0.1)";
-                }}
-                onClick={() => handlePlayGame(game.id)}
-              >
-                {/* Game thumbnail placeholder */}
-                <Box
-                  style={{
-                    width: "100%",
-                    height: "120px",
-                    background: "linear-gradient(135deg, var(--leviathan-teal), var(--leviathan-indigo))",
-                    borderRadius: "12px",
-                    marginBottom: "16px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "48px",
-                  }}
-                >
-                  🎮
-                </Box>
+            <Select.Root value={filterType} onValueChange={setFilterType}>
+              <Select.Trigger />
+              <Select.Content>
+                <Select.Item value="all">All Games</Select.Item>
+                <Select.Item value="board">Board Games</Select.Item>
+                <Select.Item value="card">Card Games</Select.Item>
+              </Select.Content>
+            </Select.Root>
+          </Flex>
+        </Flex>
 
-                <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
-                  {game.name}
-                </Heading>
+        <Tabs.Root value={activeTab} onValueChange={setActiveTab}>
+          <Tabs.List>
+            <Tabs.Trigger value="all">All Games</Tabs.Trigger>
+            <Tabs.Trigger value="templates">Game Templates</Tabs.Trigger>
+            <Tabs.Trigger value="instances">Join Game</Tabs.Trigger>
+          </Tabs.List>
 
-                <Text size="3" color="gray" style={{ marginBottom: "12px", minHeight: "40px" }}>
-                  {game.description}
-                </Text>
+          <Tabs.Content value="all">
+            {isLoading ? (
+              <Text size="3" color="gray">Loading games...</Text>
+            ) : (
+              <Grid columns="3" gap="6">
+                {getFilteredGames().map((game) => (
+                  <Card
+                    key={`${game.type}-${game.id}`}
+                    style={{
+                      ...cardStyle,
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                      e.currentTarget.style.boxShadow = "0 20px 40px rgba(56, 189, 248, 0.15)";
+                      e.currentTarget.style.border = "1px solid rgba(56, 189, 248, 0.3)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                      e.currentTarget.style.border = "1px solid rgba(148, 163, 184, 0.1)";
+                    }}
+                  >
+                    <Box
+                      style={{
+                        width: "100%",
+                        height: "120px",
+                        background: game.type === "card"
+                          ? "linear-gradient(135deg, var(--purple-9), var(--violet-9))"
+                          : "linear-gradient(135deg, var(--leviathan-teal), var(--leviathan-indigo))",
+                        borderRadius: "12px",
+                        marginBottom: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "48px",
+                      }}
+                    >
+                      {game.type === "card" ? <StackIcon width="48" height="48" color="white" /> : <CubeIcon width="48" height="48" color="white" />}
+                    </Box>
 
-                <Flex justify="between" align="center" style={{ marginBottom: "12px" }}>
-                  <Badge color="gray">Board Game</Badge>
-                  <Text size="2" color="gray">
-                    {game.totalGames} games
+                    <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
+                      {game.name}
+                    </Heading>
+
+                    <Text size="3" color="gray" style={{ marginBottom: "12px", minHeight: "40px" }}>
+                      {game.description}
+                    </Text>
+
+                    <Flex justify="between" align="center" style={{ marginBottom: "12px" }}>
+                      <Badge color={game.type === "card" ? "purple" : "blue"}>
+                        {game.gameType}
+                      </Badge>
+                      <Text size="2" color="gray">
+                        {game.totalGames} games
+                      </Text>
+                    </Flex>
+
+                    <Flex justify="between" align="center" style={{ marginBottom: "16px" }}>
+                      <Text size="2" color="gray">
+                        Fee: {(game.stakeAmount / 1000000000).toFixed(2)} SUI
+                      </Text>
+                      <Text size="2" color="gray">
+                        Max: {game.piecesPerPlayer} players
+                      </Text>
+                    </Flex>
+
+                    <Button
+                      size="3"
+                      disabled={!currentAccount}
+                      style={{
+                        width: "100%",
+                        background: currentAccount ? (game.type === "card" ? "var(--purple-9)" : "var(--leviathan-ocean)") : "var(--gray-6)",
+                        color: "white",
+                        border: "none",
+                        opacity: currentAccount ? 1 : 0.6,
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (game.type === "card") {
+                          handlePlayCardGame(game.id);
+                        } else {
+                          handlePlayGame(game.id);
+                        }
+                      }}
+                    >
+                      <PlayIcon />
+                      {!currentAccount ? "Connect Wallet" : "Create Game"}
+                    </Button>
+                  </Card>
+                ))}
+
+                {getFilteredGames().length === 0 && (
+                  <Card style={cardStyle}>
+                    <Box style={{ textAlign: "center", padding: "40px" }}>
+                      <Text size="6" style={{ fontSize: "48px", marginBottom: "16px" }}>
+                        🎮
+                      </Text>
+                      <Heading size="5" style={{ color: "white", marginBottom: "12px" }}>
+                        No Games Found
+                      </Heading>
+                      <Text size="3" color="gray">
+                        Try adjusting your search or filter criteria
+                      </Text>
+                    </Box>
+                  </Card>
+                )}
+              </Grid>
+            )}
+          </Tabs.Content>
+
+          <Tabs.Content value="templates">
+            <Grid columns="3" gap="6">
+              {cardGameTemplates.map((template) => (
+                <Card key={template.id} style={cardStyle}>
+                  <Box
+                    style={{
+                      width: "100%",
+                      height: "120px",
+                      background: "linear-gradient(135deg, var(--purple-9), var(--violet-9))",
+                      borderRadius: "12px",
+                      marginBottom: "16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <StackIcon width="48" height="48" color="white" />
+                  </Box>
+
+                  <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
+                    {template.config.title}
+                  </Heading>
+
+                  <Text size="3" color="gray" style={{ marginBottom: "12px", minHeight: "40px" }}>
+                    {template.config.description}
                   </Text>
-                </Flex>
 
-                <Flex justify="between" align="center" style={{ marginBottom: "16px" }}>
-                  <Text size="2" color="gray">
-                    Fee: {game.stakeAmount / 1000000000} SUI
-                  </Text>
-                  <Text size="2" color="gray">
-                    Max: {game.piecesPerPlayer * 4} players
-                  </Text>
-                </Flex>
+                  <Grid columns="2" gap="2" mb="3">
+                    <Text size="2" color="gray">Players: {template.config.numPlayers}</Text>
+                    <Text size="2" color="gray">Win: {template.config.winCondition.replace('_', ' ')}</Text>
+                    <Text size="2" color="gray">Hand: {template.config.initialCardsInHand}</Text>
+                    <Text size="2" color="gray">Deck: {template.config.deckComposition.suits * template.config.deckComposition.ranksPerSuit + template.config.deckComposition.jokers}</Text>
+                  </Grid>
 
-                <Button
-                  size="3"
-                  disabled={!currentAccount || !isDiscordConnected}
-                  style={{
-                    width: "100%",
-                    background: (currentAccount && isDiscordConnected) ? "var(--leviathan-ocean)" : "var(--gray-6)",
-                    color: "white",
-                    border: "none",
-                    opacity: (currentAccount && isDiscordConnected) ? 1 : 0.6,
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePlayGame(game.id);
-                  }}
-                >
-                  {!currentAccount ? "Connect Wallet" :
-                   !isDiscordConnected ? "Connect Discord" : "Play Game"}
-                </Button>
-              </Card>
-            ))}
-          </Grid>
-        ) : (
-          <Card style={cardStyle}>
-            <Box style={{ textAlign: "center", padding: "40px" }}>
-              <Text size="6" style={{ fontSize: "48px", marginBottom: "16px" }}>
-                🎮
-              </Text>
-              <Heading size="5" style={{ color: "white", marginBottom: "12px" }}>
-                No Games Yet
-              </Heading>
-              <Text size="3" color="gray">
-                Be the first to create and publish a game on Humpback Launchpad!
-              </Text>
-            </Box>
-          </Card>
-        )}
+                  <Button
+                    size="3"
+                    disabled={!currentAccount}
+                    style={{
+                      width: "100%",
+                      background: currentAccount ? "var(--purple-9)" : "var(--gray-6)",
+                      color: "white",
+                    }}
+                    onClick={() => handlePlayCardGame(template.id)}
+                  >
+                    <PlusIcon />
+                    {!currentAccount ? "Connect Wallet" : "Start New Game"}
+                  </Button>
+                </Card>
+              ))}
+
+              {cardGameTemplates.length === 0 && (
+                <Card style={cardStyle}>
+                  <Box style={{ textAlign: "center", padding: "40px" }}>
+                    <StackIcon width="48" height="48" color="var(--gray-8)" style={{ marginBottom: "16px" }} />
+                    <Heading size="5" style={{ color: "white", marginBottom: "12px" }}>
+                      No Card Game Templates
+                    </Heading>
+                    <Text size="3" color="gray" mb="4">
+                      Create the first card game template!
+                    </Text>
+                    <Button
+                      size="3"
+                      style={{ background: "var(--purple-9)" }}
+                      onClick={() => navigate('/card-game-launchpad')}
+                    >
+                      <PlusIcon /> Create Template
+                    </Button>
+                  </Box>
+                </Card>
+              )}
+            </Grid>
+          </Tabs.Content>
+
+          <Tabs.Content value="instances">
+            <Grid columns="3" gap="6">
+              {cardGameInstances.map((instance) => (
+                <Card key={instance.id} style={cardStyle}>
+                  <Box
+                    style={{
+                      width: "100%",
+                      height: "120px",
+                      background: "linear-gradient(135deg, var(--green-9), var(--emerald-9))",
+                      borderRadius: "12px",
+                      marginBottom: "16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      position: "relative"
+                    }}
+                  >
+                    <PlayIcon width="48" height="48" color="white" />
+                    <Badge
+                      size="1"
+                      style={{
+                        position: "absolute",
+                        top: "8px",
+                        right: "8px",
+                        background: "rgba(34, 197, 94, 0.9)"
+                      }}
+                    >
+                      Waiting
+                    </Badge>
+                  </Box>
+
+                  <Heading size="4" style={{ color: "white", marginBottom: "8px" }}>
+                    {gameInstanceManager.getTemplate(instance.templateId)?.config.title || "Unknown Game"}
+                  </Heading>
+
+                  <Text size="3" color="gray" style={{ marginBottom: "12px", minHeight: "40px" }}>
+                    Entry Fee: {instance.entryFee} SUI
+                  </Text>
+
+                  <Flex justify="between" align="center" style={{ marginBottom: "16px" }}>
+                    <Text size="2" color="gray">
+                      Players: {instance.currentPlayers}/{instance.maxPlayers}
+                    </Text>
+                    <Text size="2" style={{ color: "var(--green-11)" }}>
+                      {instance.prizePool.toFixed(2)} SUI Pool
+                    </Text>
+                  </Flex>
+
+                  <Button
+                    size="3"
+                    disabled={!currentAccount || instance.currentPlayers >= instance.maxPlayers}
+                    style={{
+                      width: "100%",
+                      background: currentAccount && instance.currentPlayers < instance.maxPlayers ? "var(--green-9)" : "var(--gray-6)",
+                      color: "white",
+                    }}
+                    onClick={() => handleJoinCardInstance(instance.id)}
+                  >
+                    <PlayIcon />
+                    {!currentAccount ? "Connect Wallet" :
+                     instance.currentPlayers >= instance.maxPlayers ? "Game Full" : "Join Game"}
+                  </Button>
+                </Card>
+              ))}
+
+              {cardGameInstances.length === 0 && (
+                <Card style={cardStyle}>
+                  <Box style={{ textAlign: "center", padding: "40px" }}>
+                    <PlayIcon width="48" height="48" color="var(--gray-8)" style={{ marginBottom: "16px" }} />
+                    <Heading size="5" style={{ color: "white", marginBottom: "12px" }}>
+                      No Active Games
+                    </Heading>
+                    <Text size="3" color="gray">
+                      Start a new game from the templates tab!
+                    </Text>
+                  </Box>
+                </Card>
+              )}
+            </Grid>
+          </Tabs.Content>
+        </Tabs.Root>
       </Box>
 
       {/* Instructions for users */}

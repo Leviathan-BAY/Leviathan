@@ -219,16 +219,9 @@ export function HumpbackLaunchpadPage() {
                 <Button
                   size="3"
                   style={{ background: "linear-gradient(135deg, var(--purple-9), var(--violet-9))" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCreateGame("card");
-                  }}
-                  disabled={!currentAccount}
+                  onClick={() => navigate('/card-game-launchpad')}
                 >
                   <PlusIcon /> Create Now
-                </Button>
-                <Button variant="outline" size="3">
-                  <Pencil2Icon /> Customize
                 </Button>
               </Flex>
             </Box>
