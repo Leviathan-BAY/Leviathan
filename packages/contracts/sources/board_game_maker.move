@@ -46,6 +46,51 @@ module leviathan::board_game_maker {
         is_active: bool,
     }
 
+    /// 새 엔트리 함수: 한 번에 GameTemplate 생성 + 설정
+    public entry fun create_full_game_template(
+        name: String,
+        description: String,
+        dice_min: u8,
+        dice_max: u8,
+        pieces_per_player: u8,
+        stake_amount: u64,
+        board: vector<u8>,           // 길이 100, 각 위치의 cell_type
+        start_positions: vector<u8>,
+        finish_positions: vector<u8>,
+        ctx: &mut TxContext
+    ) {
+        // === 1. 보드 테이블 생성 ===
+        let mut table = table::new<u8, u8>(ctx);
+        let mut i = 0;
+        let len = vector::length(&board);
+        while (i < len) {
+            let cell_type = *vector::borrow(&board, i);
+            if (cell_type != 0) {
+                table::add(&mut table, i as u8, cell_type);
+            };
+            i = i + 1;
+        };
+
+        // === 2. GameTemplate 오브젝트 생성 ===
+        let template = GameTemplate {
+            id: object::new(ctx),
+            creator: tx_context::sender(ctx),
+            name,
+            description,
+            board_cells: table,
+            dice_min,
+            dice_max,
+            pieces_per_player,
+            start_positions,
+            finish_positions,
+            stake_amount,
+            created_at: tx_context::epoch_timestamp_ms(ctx),
+            is_active: true,
+        };
+
+        // === 3. move_to로 소유자에게 발행 ===
+        transfer::public_transfer(template, tx_context::sender(ctx));
+    }
 
     /// Events
     public struct TemplateCreated has copy, drop {
@@ -57,183 +102,7 @@ module leviathan::board_game_maker {
 
 
     /// 게임 템플릿 생성 (런치패드 기능)
-    public entry fun create_game_template(
-        name: vector<u8>,
-        description: vector<u8>,
-        dice_min: u8,
-        dice_max: u8,
-        pieces_per_player: u8,
-        stake_amount: u64,
-        ctx: &mut TxContext
-    ) {
-        // 유효성 검사
-        assert!(dice_min >= 1 && dice_max <= 20 && dice_min <= dice_max, E_INVALID_DICE_RANGE);
-        assert!(pieces_per_player >= 1 && pieces_per_player <= 5, E_INVALID_PIECE_COUNT);
 
-        let mut template = GameTemplate {
-            id: object::new(ctx),
-            creator: tx_context::sender(ctx),
-            name: string::utf8(name),
-            description: string::utf8(description),
-            board_cells: table::new(ctx),
-            dice_min,
-            dice_max,
-            pieces_per_player,
-            start_positions: vector::empty(),
-            finish_positions: vector::empty(),
-            stake_amount,
-            created_at: tx_context::epoch_timestamp_ms(ctx),
-            is_active: true,
-        };
-
-        let template_id = object::id(&template);
-
-        // 기본적으로 모든 칸을 PASSABLE로 초기화
-        let mut i = 0;
-        while (i < 100) {
-            table::add(&mut template.board_cells, i, CELL_TYPE_PASSABLE);
-            i = i + 1;
-        };
-
-        // 템플릿을 공유 객체로 만들어서 누구나 게임을 시작할 수 있도록
-        transfer::share_object(template);
-
-        event::emit(TemplateCreated {
-            template_id,
-            creator: tx_context::sender(ctx),
-            name: string::utf8(name),
-            timestamp: tx_context::epoch_timestamp_ms(ctx),
-        });
-    }
-
-    /// 보드 셀 설정 (런치패드 기능)
-    public entry fun set_board_cell(
-        template: &mut GameTemplate,
-        position: u8,
-        cell_type: u8,
-        ctx: &mut TxContext
-    ) {
-        // 권한 확인
-        assert!(tx_context::sender(ctx) == template.creator, E_UNAUTHORIZED);
-        assert!(position < 100, E_INVALID_POSITION);
-        assert!(cell_type <= CELL_TYPE_FINISH, E_INVALID_CELL_TYPE);
-
-        // 셀 타입 업데이트
-        if (table::contains(&template.board_cells, position)) {
-            let cell_ref = table::borrow_mut(&mut template.board_cells, position);
-            *cell_ref = cell_type;
-        } else {
-            table::add(&mut template.board_cells, position, cell_type);
-        };
-    }
-
-    /// 여러 셀을 한번에 설정 (효율성을 위해)
-    public entry fun set_multiple_cells(
-        template: &mut GameTemplate,
-        positions: vector<u8>,
-        cell_types: vector<u8>,
-        ctx: &mut TxContext
-    ) {
-        assert!(tx_context::sender(ctx) == template.creator, E_UNAUTHORIZED);
-        assert!(vector::length(&positions) == vector::length(&cell_types), E_INVALID_POSITION);
-
-        let mut i = 0;
-        let len = vector::length(&positions);
-        while (i < len) {
-            let pos = *vector::borrow(&positions, i);
-            let cell_type = *vector::borrow(&cell_types, i);
-
-            assert!(pos < 100, E_INVALID_POSITION);
-            assert!(cell_type <= CELL_TYPE_FINISH, E_INVALID_CELL_TYPE);
-
-            if (table::contains(&template.board_cells, pos)) {
-                let cell_ref = table::borrow_mut(&mut template.board_cells, pos);
-                *cell_ref = cell_type;
-            } else {
-                table::add(&mut template.board_cells, pos, cell_type);
-            };
-
-            i = i + 1;
-        };
-    }
-
-    /// 시작점 설정
-    public entry fun set_start_positions(
-        template: &mut GameTemplate,
-        positions: vector<u8>,
-        ctx: &mut TxContext
-    ) {
-        assert!(tx_context::sender(ctx) == template.creator, E_UNAUTHORIZED);
-        assert!(vector::length(&positions) > 0, E_INVALID_POINTS);
-
-        // 기존 시작점들을 일반 칸으로 되돌리기
-        let mut i = 0;
-        let old_len = vector::length(&template.start_positions);
-        while (i < old_len) {
-            let old_pos = *vector::borrow(&template.start_positions, i);
-            if (table::contains(&template.board_cells, old_pos)) {
-                let cell_ref = table::borrow_mut(&mut template.board_cells, old_pos);
-                *cell_ref = CELL_TYPE_PASSABLE;
-            };
-            i = i + 1;
-        };
-
-        // 새로운 시작점 설정
-        template.start_positions = positions;
-        let mut j = 0;
-        let new_len = vector::length(&positions);
-        while (j < new_len) {
-            let pos = *vector::borrow(&positions, j);
-            assert!(pos < 100, E_INVALID_POSITION);
-
-            if (table::contains(&template.board_cells, pos)) {
-                let cell_ref = table::borrow_mut(&mut template.board_cells, pos);
-                *cell_ref = CELL_TYPE_START;
-            } else {
-                table::add(&mut template.board_cells, pos, CELL_TYPE_START);
-            };
-            j = j + 1;
-        };
-    }
-
-    /// 도착점 설정
-    public entry fun set_finish_positions(
-        template: &mut GameTemplate,
-        positions: vector<u8>,
-        ctx: &mut TxContext
-    ) {
-        assert!(tx_context::sender(ctx) == template.creator, E_UNAUTHORIZED);
-        assert!(vector::length(&positions) > 0, E_INVALID_POINTS);
-
-        // 기존 도착점들을 일반 칸으로 되돌리기
-        let mut i = 0;
-        let old_len = vector::length(&template.finish_positions);
-        while (i < old_len) {
-            let old_pos = *vector::borrow(&template.finish_positions, i);
-            if (table::contains(&template.board_cells, old_pos)) {
-                let cell_ref = table::borrow_mut(&mut template.board_cells, old_pos);
-                *cell_ref = CELL_TYPE_PASSABLE;
-            };
-            i = i + 1;
-        };
-
-        // 새로운 도착점 설정
-        template.finish_positions = positions;
-        let mut j = 0;
-        let new_len = vector::length(&positions);
-        while (j < new_len) {
-            let pos = *vector::borrow(&positions, j);
-            assert!(pos < 100, E_INVALID_POSITION);
-
-            if (table::contains(&template.board_cells, pos)) {
-                let cell_ref = table::borrow_mut(&mut template.board_cells, pos);
-                *cell_ref = CELL_TYPE_FINISH;
-            } else {
-                table::add(&mut template.board_cells, pos, CELL_TYPE_FINISH);
-            };
-            j = j + 1;
-        };
-    }
 
     /// Public getter functions for board_game_launcher module
     public fun is_template_active(template: &GameTemplate): bool {
