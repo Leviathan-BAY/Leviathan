@@ -12,7 +12,7 @@
   [![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 </div>
 
-##PitchDeck
+## PitchDeck
 <link>https://www.canva.com/design/DAGzb_WNKoI/W6x6P5WJfOU7lrE8PfUu2Q/edit</link>
 
 ## 🌊 Overview
