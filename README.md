@@ -12,6 +12,9 @@
   [![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 </div>
 
+##PitchDeck
+<link>https://www.canva.com/design/DAGzb_WNKoI/W6x6P5WJfOU7lrE8PfUu2Q/edit</link>
+
 ## 🌊 Overview
 
 Leviathan is a Web3 game launchpad built on Sui blockchain that enables creators to build and launch custom dice/board games without requiring smart contract expertise. The platform combines game creation tools with financial stability mechanisms to create a thriving creator economy.
