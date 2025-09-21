@@ -1,135 +1,149 @@
-# Leviathan - Web3 Game Launchpad
+# Leviathan - Web3 Game Launchpad on Sui
 
 <div align="center">
-  <img src="./images/Leviathan.png" alt="Leviathan Logo" width="200" />
+  <img src="./images/Leviathanlogo.png" alt="Leviathan Logo" width="200" />
 
-  <h3>Create, customize, and launch your own Web3 games on Sui blockchain</h3>
+  <h3>Create, customize, and launch your own dice/board games on Sui blockchain with financial stability</h3>
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
   [![Sui](https://img.shields.io/badge/Sui-4DA3FC?logo=sui&logoColor=white)](https://sui.io/)
   [![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
+  [![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 </div>
 
 ## 🌊 Overview
 
-Leviathan is a revolutionary Web3 game launchpad built on the Sui blockchain that empowers creators to build and launch custom games without deep smart contract knowledge. The platform features three core modules:
+Leviathan is a Web3 game launchpad built on Sui blockchain that enables creators to build and launch custom dice/board games without requiring smart contract expertise. The platform combines game creation tools with financial stability mechanisms to create a thriving creator economy.
 
-- **🏦 Hermit Finance**: Delta-neutral financial engine that provides stability through hSui tokens
-- **🚢 Humpback Launchpad**: No-code game creation tools for custom board games and more
-- **🎮 Splash Zone**: Gaming arena where players discover and compete in community-created games
+### 🎯 Core Modules
+
+- **🏦 Hermit Finance**: Liquid staking system providing financial stability through hSUI tokens with delta-neutral strategy
+- **🚢 Humpback Launchpad**: Visual game creation tools for customizing dice/board games with drag-and-drop editor
+- **🎮 Splash Zone**: Gaming arena for discovering and playing community-created games with real stakes
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ and pnpm
-- Docker and Docker Compose
-- Sui CLI (for smart contract development)
+- Node.js 18+ and npm/pnpm
+- Sui CLI for smart contract interaction
+- A Sui wallet (like Slush) for testing
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/leviathan.git
-   cd leviathan
+   git clone https://github.com/Leviathan-BAY/Leviathan.git
+   cd Leviathan
    ```
-
-2. **Install dependencies**
+   
+2. **Install frontend dependencies**
    ```bash
+   cd frontend
    pnpm install
    ```
 
-3. **Set up environment**
+3. **Set up Sui environment**
    ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+   # Install Sui CLI
+   curl -fsSL https://sui.io/install.sh | sh
+
+   # Configure testnet
+   sui client new-env --alias testnet --rpc https://fullnode.testnet.sui.io:443
+   sui client switch --env testnet
+   sui client faucet  # Get test SUI
    ```
 
-4. **Start development environment**
+4. **Start development server**
    ```bash
-   # Start all services with Docker Compose
-   docker-compose up -d
-
-   # Or run individual services
-   pnpm frontend:dev # Frontend (localhost:3000)
-   pnpm backend:dev  # Backend API (localhost:3001)
+   cd frontend
+   pnpm run dev  # Frontend (localhost:5173)
    ```
 
-5. **Deploy smart contracts** (optional for development)
-   ```bash
-   cd packages/contracts
-   sui move build
-   sui client publish --gas-budget 100000000
-   ```
+5. **Smart contracts** (already deployed on testnet)
+   - hSUI contracts: Live on Sui testnet
+   - Game contracts: Available for board game and poker
 
-## 🏗️ Architecture
+## 🏗️ Project Structure
 
-### Monorepo Structure
+### Current Architecture
 
 ```
 leviathan/
-├── frontend/                   # React frontend application
-├── backend/                    # Node.js API server
+├── frontend/                   # React + Vite frontend application
+│   ├── src/
+│   │   ├── pages/              # Main pages (HomePage, HermitFinancePage, etc.)
+│   │   ├── layouts/            # Layout components (MainLayout)
+│   │   ├── config/             # Contract addresses and configuration
+│   │   ├── utils/              # Sui client and utilities
+│   │   ├── hooks/              # React hooks for Sui integration
+│   │   ├── assets/             # Images and static assets
+│   │   └── WalletStatus.tsx    # Wallet connection component
 ├── packages/
-│   ├── contracts/              # Sui Move smart contracts
-│   ├── ui/                     # Shared UI components
-│   ├── utils/                  # Utility libraries
-│   └── types/                  # TypeScript type definitions
-├── tools/                      # Development tools and scripts
-└── docs/                       # Documentation
+│   └── contracts/              # Sui Move smart contracts
+│       ├── sources/            # Move contract source files
+│       │   ├── hsui.move      # hSUI liquid staking token
+│       │   ├── board_game_*.move  # Board game contracts
+│       │   └── card_poker_*.move  # Poker game contracts
+│       └── Move.toml          # Move package configuration
+├── images/                     # Logo and branding assets
+└── docs/                      # Documentation
 ```
 
-### Frontend Architecture (Feature-Based)
+### Tech Stack
 
-```
-frontend/src/features/
-├── hermit-finance/             # hSui token management
-├── humpback-launchpad/         # Game creation tools
-├── splash-zone/                # Game discovery and play
-├── wallet/                     # Sui wallet integration
-└── shared/                     # Common components and utilities
-```
+- **Frontend**: React 18.3.1 + TypeScript + Vite 7.1.5
+- **UI Library**: Radix UI Themes 3.2.1 (glassmorphism design)
+- **Blockchain**: Sui Move smart contracts
+- **Wallet Integration**: @mysten/dapp-kit 0.18.0
+- **State Management**: @tanstack/react-query 5.87.1
 
 ## 🎯 Core Features
 
-### Hermit Finance
-- **SUI ↔ hSui Conversion**: 1:1 conversion with delta-neutral backing
-- **Price Stability**: Protection from SUI token volatility
-- **DeFi Integration**: Staking and futures position management
+### 🏦 Hermit Finance - Liquid Staking Engine
+The financial backbone providing stability for the gaming ecosystem:
 
-### Humpback Launchpad
-- **Game Templates**: Pre-built templates for board games, card games, etc.
-- **Visual Editor**: Drag-and-drop interface for game customization
-- **Test Playground**: AI bots and simulation for game testing
-- **Publishing**: One-click deployment to Walrus storage and on-chain registry
+- **SUI ↔ hSUI Conversion**: 1:1 deposit ratio with delta-neutral strategy backing
+- **Price Stability**: Protects users from SUI token volatility through hedging mechanisms
+- **Live Implementation**: Fully deployed on Sui testnet with real SUI deposits
+- **User Benefits**: Stake SUI, receive hSUI, and use stable tokens for gaming
+- **APY Rewards**: Earn staking rewards while maintaining value stability
 
-### Splash Zone
-- **Game Discovery**: Browse and filter community-created games
-- **PvP Matchmaking**: Real-time multiplayer with stake-based competitions
-- **Leaderboards**: Rankings and seasonal tournaments
-- **Social Features**: Player profiles, friends, and communities
+### 🚢 Humpback Launchpad - Game Creation Studio
+Visual no-code tools for creating custom dice and board games:
+
+- **5×5 Board Templates**: Pre-configured game boards with customizable layouts
+- **Dice Game Mechanics**: Roll-and-move gameplay with configurable dice (1-6)
+- **Game Customization**:
+  - Set player count (2-4 players)
+  - Configure dice rules and movement
+  - Design board layouts with start/finish points
+  - Set stake amounts for competitive play
+- **Visual Editor**: Drag-and-drop interface for game piece placement
+- **Publishing**: Deploy games to blockchain with template system
+- **Community Showcase**: Browse and play games created by other users
+
+### 🎮 Splash Zone - Gaming Arena
+Discover and play community-created games with real stakes:
+
+- **Game Discovery**: Browse published dice/board games
+- **Competitive Play**: Join games with SUI stakes
+- **Community Features**: Rate and review games
+- **Fair Gameplay**: Smart contract-enforced rules and payouts
+
 
 ## 🛠️ Development
 
 ### Available Scripts
 
 ```bash
-# Development
-pnpm dev                        # Start all services
-pnpm frontend:dev               # Frontend only
-pnpm backend:dev                # Backend only
 
-# Building
-pnpm build                      # Build all packages
-pnpm contracts:build            # Build smart contracts only
-
-# Testing
-pnpm test                       # Run all tests
-pnpm contracts:test             # Test smart contracts
-
-# Linting
-pnpm lint                       # Lint all packages
+# Smart Contract Development
+cd packages/contracts
+sui move build                  # Build Move contracts
+sui move test                   # Run contract tests
+sui client publish --gas-budget 200000000  # Deploy to testnet
 ```
 
 ### Smart Contract Development
@@ -140,118 +154,148 @@ cd packages/contracts
 # Build contracts
 sui move build
 
-# Run tests
+# Run tests (if available)
 sui move test
 
-# Deploy to testnet
-sui client publish --gas-budget 100000000
+# Deploy to testnet (requires sufficient gas)
+sui client publish --gas-budget 200000000
+
+# Check wallet balance
+sui client gas
+
+# Get testnet SUI
+sui client faucet
 ```
 
-### Database Setup
+### Contract Addresses (Testnet)
 
-```bash
-cd backend
+Current deployed contracts on Sui testnet:
 
-# Generate Prisma client
-pnpm db:generate
-
-# Run migrations
-pnpm db:migrate
-
-# Open Prisma Studio
-pnpm db:studio
+```typescript
+export const TESTNET_CONTRACTS = {
+  PACKAGE_ID: '0xff744af12fc4de6eae0af442ec787adbab873a9f18b36efcb95591d1f1e95f41',
+  HSUI_VAULT: '0x8885b711d44b78b4e7b01b6af0f469853ed02f6e7e7f699cee75e4563cf6e5de',
+  ADMIN_CAP: '0xad0b33ed7b5acb027c4b6b86bd10b942fe2d33e495469d31e53ab56374b23c26',
+  GAME_REGISTRY: '0x0bf6e2b278866cc12754f6ad9d278ba7848bd31bcb4f4af6c2b94c7e5d70adb4',
+};
 ```
 
-## 🧪 Testing
+## 🎮 How to Use
 
-### Running Tests
+### For Players
 
-```bash
-# All tests
-pnpm test
+1. **Connect Wallet**: Use a Sui-compatible wallet (like Slush)
+2. **Get Testnet SUI**: Use the Sui faucet for testing
+3. **Try Hermit Finance**:
+   - Visit `/hermit-finance` to stake SUI for stable hSUI
+   - Experience 1:1 conversion with delta-neutral backing
+4. **Create Games**:
+   - Go to `/humpback-launchpad`
+   - Choose board game template
+   - Customize your 5×5 board game
+   - Publish to the blockchain
+5. **Play Games**:
+   - Visit `/splash-zone` to discover community games
+   - Join games with real SUI stakes
+6. **Poker Demo**:
+   - Try `/poker-game` for a simple 2-player poker experience
 
-# Frontend tests
-cd frontend && pnpm test
+### For Developers
 
-# Backend tests
-cd backend && pnpm test
+1. **Clone and Setup**: Follow the Quick Start guide above
+2. **Study the Code**:
+   - `frontend/src/pages/` - Main application pages
+   - `packages/contracts/sources/` - Smart contract implementations
+   - `frontend/src/config/contracts.ts` - Contract addresses and configuration
+3. **Extend Features**:
+   - Add new game templates
+   - Enhance the visual editor
+   - Integrate additional DeFi features
 
-# Smart contract tests
-cd packages/contracts && sui move test
-```
+## 🔧 Configuration
 
-### E2E Testing
+### Environment Setup
 
-```bash
-# Install Playwright
-pnpm exec playwright install
+The project uses several configuration files:
 
-# Run E2E tests
-pnpm test:e2e
-```
+- `frontend/src/config/contracts.ts` - Contract addresses
+- `packages/contracts/Move.toml` - Move package configuration
+- `frontend/vite.config.ts` - Vite build configuration
 
-## 📦 Deployment
+### Wallet Integration
 
-### Production Build
+Supported wallets through @mysten/dapp-kit:
+- Slush Wallet
+- Sui Wallet
+- And other Sui-compatible wallets
 
-```bash
-# Build all packages
-pnpm build
+## 🎯 Features Roadmap
 
-# Build Docker images
-docker-compose -f docker-compose.prod.yml build
-```
+### ✅ Implemented
+- **Hermit Finance**: Full hSUI liquid staking system
+- **Humpback Launchpad**: 5×5 board game creation tools
+- **Basic Poker**: Smart contract implementation
+- **Wallet Integration**: Sui wallet connection
+- **Glassmorphism UI**: Modern design system
 
-### Smart Contract Deployment
+### 🚧 In Development
+- **Enhanced Game Templates**: More board game varieties
+- **Splash Zone**: Game discovery and matchmaking
+- **Advanced Poker**: Full frontend implementation
+- **Tournament System**: Organized competitions
 
-1. **Testnet Deployment**
-   ```bash
-   cd packages/contracts
-   sui client publish --gas-budget 100000000
-   ```
-
-2. **Mainnet Deployment**
-   ```bash
-   sui client switch --env mainnet
-   sui client publish --gas-budget 100000000
-   ```
-
-3. **Update Environment Variables**
-   ```bash
-   # Add contract addresses to .env
-   HERMIT_FINANCE_PACKAGE_ID=0x...
-   GAME_LAUNCHPAD_PACKAGE_ID=0x...
-   ```
+### 🎯 Planned
+- **NFT Integration**: Game pieces as NFTs
+- **Advanced Editor**: More customization options
+- **Mobile Support**: React Native implementation
+- **Mainnet Deployment**: Production-ready launch
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
+We welcome contributions to the Leviathan ecosystem!
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### How to Contribute
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+4. **Push to the branch** (`git push origin feature/amazing-feature`)
+5. **Open a Pull Request**
+
+### Areas for Contribution
+- 🎮 New game templates and mechanics
+- 🎨 UI/UX improvements and design enhancements
+- 🔧 Smart contract optimizations
+- 📚 Documentation and tutorials
+- 🐛 Bug fixes and testing
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
-## 🔗 Links
+## 🔗 Links & Resources
 
-- [Website](https://leviathan.game) (Coming Soon)
-- [Documentation](./docs/)
-- [Sui Documentation](https://docs.sui.io/)
-- [Discord Community](#) (Coming Soon)
+- **Sui Documentation**: [https://docs.sui.io/](https://docs.sui.io/)
+- **Sui Move Language**: [https://move-language.github.io/](https://move-language.github.io/)
+- **Radix UI**: [https://www.radix-ui.com/](https://www.radix-ui.com/)
+- **Vite**: [https://vitejs.dev/](https://vitejs.dev/)
 
 ## 🙏 Acknowledgments
 
-- [Sui Foundation](https://sui.io/) for the amazing blockchain platform
-- [React](https://reactjs.org/) and [Vite](https://vitejs.dev/) for the frontend tooling
-- All the open-source contributors who made this project possible
+- **Sui Foundation** for the innovative blockchain platform and Move language
+- **Radix UI Team** for the excellent component library
+- **React & Vite Teams** for the outstanding development tools
+- **Web3 Gaming Community** for inspiration and feedback
 
 ---
 
 <div align="center">
-  <strong>Built with ❤️ for the Web3 gaming community</strong>
+  <img src="./images/Humpbacklogo.png" alt="Humpback" width="50" />
+  <img src="./images/Hermitlogo.png" alt="Hermit" width="50" />
+  <img src="./images/SplashZonelogo.png" alt="Splash Zone" width="50" />
+
+  <br><br>
+  <strong>🌊 Built with ❤️ for the Web3 gaming community 🎮</strong>
+
+  <br><br>
+  <em>Empowering creators to build the future of decentralized gaming on Sui</em>
 </div>
